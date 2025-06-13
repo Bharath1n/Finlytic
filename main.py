@@ -4,25 +4,28 @@ from pydantic import BaseModel, field_validator
 import pandas as pd
 import pickle
 import os
+import logging
 from preprocessing import preprocess_input
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for dev; restrict in production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Paths
 MODEL_DIR = "backend/model"
 MODEL_PATH = os.path.join(MODEL_DIR, "loan_model.pkl")
 SCALER_PATH = os.path.join(MODEL_DIR, "scaler.pkl")
+CREDIT_RISK_MODEL_PATH = os.path.join(MODEL_DIR, "credit_risk_model.pkl")
+CREDIT_RISK_SCALER_PATH = os.path.join(MODEL_DIR, "credit_risk_scaler.pkl")
 
-# Load model and scaler
 try:
     if not os.path.exists(MODEL_PATH):
         raise FileNotFoundError(f"Model file not found at {MODEL_PATH}")
@@ -33,10 +36,22 @@ try:
     with open(SCALER_PATH, 'rb') as f:
         scaler = pickle.load(f)
 except Exception as e:
-    print(f"Error loading model/scaler: {e}")
+    logger.error(f"Error loading model/scaler: {e}", exc_info=True)
     raise ValueError(f"Failed to load model or scaler: {str(e)}")
 
-# Pydantic model
+try:
+    if not os.path.exists(CREDIT_RISK_MODEL_PATH):
+        raise FileNotFoundError(f"Credit risk model file not found at {CREDIT_RISK_MODEL_PATH}")
+    if not os.path.exists(CREDIT_RISK_SCALER_PATH):
+        raise FileNotFoundError(f"Credit risk scaler file not found at {CREDIT_RISK_SCALER_PATH}")
+    with open(CREDIT_RISK_MODEL_PATH, 'rb') as f:
+        credit_risk_model = pickle.load(f)
+    with open(CREDIT_RISK_SCALER_PATH, 'rb') as f:
+        credit_risk_scaler = pickle.load(f)
+except Exception as e:
+    logger.error(f"Error loading credit risk model/scaler: {e}", exc_info=True)
+    raise ValueError(f"Failed to load credit risk model or scaler: {str(e)}")
+
 class LoanInput(BaseModel):
     Age: int
     Income: float
@@ -58,7 +73,7 @@ class LoanInput(BaseModel):
     @field_validator('Education')
     @classmethod
     def validate_education(cls, v: str) -> str:
-        valid = ['high school', 'bachelor', 'master\'s', 'phd']
+        valid = ['high school', 'bachelor', "master's", 'phd']
         if v.lower() not in valid:
             raise ValueError(f"Education must be one of {valid}")
         return v.lower()
@@ -95,21 +110,59 @@ class LoanInput(BaseModel):
             raise ValueError(f"LoanPurpose must be one of {valid}")
         return v.lower()
 
-# Prediction endpoint
+class CreditRiskInput(BaseModel):
+    person_age: float
+    person_income: float
+    person_home_ownership: str
+    person_emp_length: float
+    loan_intent: str
+    loan_grade: str
+    loan_amnt: float
+    loan_int_rate: float
+    loan_percent_income: float
+    cb_person_default_on_file: str
+    cb_person_cred_hist_length: float
+
+    @field_validator('person_home_ownership')
+    @classmethod
+    def validate_home_ownership(cls, v: str) -> str:
+        valid = ['rent', 'own', 'mortgage', 'other']
+        if v.lower() not in valid:
+            raise ValueError(f"Home ownership must be one of {valid}")
+        return v.lower()
+
+    @field_validator('loan_intent')
+    @classmethod
+    def validate_loan_intent(cls, v: str) -> str:
+        valid = ['personal', 'education', 'medical', 'venture', 'homeimprovement', 'debtconsolidation']
+        if v.lower() not in valid:
+            raise ValueError(f"Loan intent must be one of {valid}")
+        return v.lower()
+
+    @field_validator('loan_grade')
+    @classmethod
+    def validate_loan_grade(cls, v: str) -> str:
+        valid = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
+        if v.lower() not in valid:
+            raise ValueError(f"Loan grade must be one of {valid}")
+        return v.lower()
+
+    @field_validator('cb_person_default_on_file')
+    @classmethod
+    def validate_default_on_file(cls, v: str) -> str:
+        valid = ['y', 'n']
+        if v.lower() not in valid:
+            raise ValueError(f"Default on file must be one of {valid}")
+        return v.lower()
+
 @app.post("/predict/")
 async def predict_loan_default(input_data: LoanInput):
     try:
-        # Convert input to DataFrame
         input_dict = input_data.dict()
         df = pd.DataFrame([input_dict])
-        
-        # Preprocess input
-        processed_input = preprocess_input(df, scaler)
-        
-        # Predict
+        processed_input = preprocess_input(df, scaler, model_type='loan_default')
         prediction = model.predict(processed_input)[0]
         probability = model.predict_proba(processed_input)[0][1]
-        
         return {
             "prediction": int(prediction),
             "probability": float(probability)
@@ -117,18 +170,40 @@ async def predict_loan_default(input_data: LoanInput):
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=f"Invalid input: {str(ve)}")
     except Exception as e:
+        logger.error(f"Error in predict_loan_default: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
 
-# Load dataset for stats
+@app.post("/credit_risk/")
+async def predict_credit_risk(input_data: CreditRiskInput):
+    try:
+        input_dict = input_data.dict()
+        processed_input = preprocess_input(input_dict, scaler=credit_risk_scaler, model_type='credit_risk')
+        prediction = credit_risk_model.predict([processed_input])[0]
+        probability = credit_risk_model.predict_proba([processed_input])[0][1]
+        if probability > 0.7:
+            risk_category = "High Risk"
+        elif probability > 0.3:
+            risk_category = "Medium Risk"
+        else:
+            risk_category = "Low Risk"
+        return {
+            "credit_risk_prediction": risk_category,
+            "credit_risk_probability": float(probability)
+        }
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=f"Invalid input: {str(ve)}")
+    except Exception as e:
+        logger.error(f"Error in predict_credit_risk: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+
 try:
     df = pd.read_csv("data/loan_data.csv")
     if df.empty:
         raise ValueError("Dataset is empty")
 except Exception as e:
-    print(f"Error loading dataset: {e}")
+    logger.error(f"Error loading dataset: {e}", exc_info=True)
     raise ValueError(f"Failed to load dataset: {str(e)}")
 
-# Stats endpoint
 @app.get("/stats/")
 async def get_stats():
     try:
@@ -137,33 +212,77 @@ async def get_stats():
             "averageIncome": float(df['Income'].mean()),
             "averageLoanAmount": float(df['LoanAmount'].mean()),
             "defaultRate": float(df['Default'].mean() * 100),
-
-            # For pie chart
             "defaultDistribution": [
                 int(df['Default'].value_counts().get(0, 0)),
                 int(df['Default'].value_counts().get(1, 0))
             ],
-
-            # For bar charts
             "educationDistribution": df['Education'].value_counts().to_dict(),
             "loanPurposeDistribution": df['LoanPurpose'].value_counts().to_dict(),
             "employmentTypeDistribution": df['EmploymentType'].value_counts().to_dict(),
             "maritalStatusDistribution": df['MaritalStatus'].value_counts().to_dict(),
-
-            # For histogram-like DTI bins
             "dtiDistribution": pd.cut(
                 df["DTIRatio"],
                 bins=[0, 0.2, 0.4, 0.6, 0.8, 1.0],
                 labels=["0-0.2", "0.2-0.4", "0.4-0.6", "0.6-0.8", "0.8-1.0"]
             ).value_counts().sort_index().to_dict()
         }
-
+        logger.debug("Loan default stats computed successfully")
         return stats
-
     except Exception as e:
+        logger.error(f"Error in get_stats: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error calculating stats: {str(e)}")
+
+@app.get("/credit_risk_stats/")
+async def get_credit_risk_stats():
+    try:
+        logger.debug("Loading credit_risk_data_encoded.csv")
+        data = pd.read_csv("data/credit_risk_data_encoded.csv")
+        logger.debug(f"CSV loaded. Columns: {data.columns.tolist()}")
+
+        logger.debug("Loading LabelEncoders")
+        with open("backend/model/le_person_home_ownership.pkl", "rb") as f:
+            le_home = pickle.load(f)
+        with open("backend/model/le_loan_intent.pkl", "rb") as f:
+            le_intent = pickle.load(f)
+        with open("backend/model/le_loan_grade.pkl", "rb") as f:
+            le_grade = pickle.load(f)
+        with open("backend/model/le_cb_person_default_on_file.pkl", "rb") as f:
+            le_default = pickle.load(f)
+        logger.debug("LabelEncoders loaded")
+
+        logger.debug("Decoding distributions")
+        home_dist = {le_home.inverse_transform([int(k)])[0]: v for k, v in data["person_home_ownership"].value_counts().to_dict().items()}
+        intent_dist = {le_intent.inverse_transform([int(k)])[0]: v for k, v in data["loan_intent"].value_counts().to_dict().items()}
+        grade_dist = {le_grade.inverse_transform([int(k)])[0]: v for k, v in data["loan_grade"].value_counts().to_dict().items()}
+        default_dist = {le_default.inverse_transform([int(k)])[0]: v for k, v in data["cb_person_default_on_file"].value_counts().to_dict().items()}
+        logger.debug("Distributions decoded")
+
+        logger.debug("Computing loan_percent_income distribution")
+        loan_percent_dist = pd.cut(
+            data["loan_percent_income"],
+            bins=[0, 0.2, 0.4, 0.6, 0.8, 1.0],
+            labels=["0-0.2", "0.2-0.4", "0.4-0.6", "0.6-0.8", "0.8-1.0"]
+        ).value_counts().sort_index().to_dict()
+        logger.debug(f"Loan percent income distribution: {loan_percent_dist}")
+
+        stats = {
+            "averageAge": float(data["person_age"].mean()),
+            "averageIncome": float(data["person_income"].mean()),
+            "averageLoanAmount": float(data["loan_amnt"].mean()),
+            "defaultRate": float(data["loan_status"].mean() * 100),
+            "defaultDistribution": [int((data["loan_status"] == 0).sum()), int((data["loan_status"] == 1).sum())],
+            "homeOwnershipDistribution": home_dist,
+            "loanIntentDistribution": intent_dist,
+            "loanGradeDistribution": grade_dist,
+            "defaultOnFileDistribution": default_dist,
+            "loanPercentIncomeDistribution": loan_percent_dist,
+        }
+        logger.debug("Stats computed successfully")
+        return stats
+    except Exception as e:
+        logger.error(f"Error in credit_risk_stats: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error calculating credit risk stats: {str(e)}")
     
-# Health check
 @app.get("/")
 async def health_check():
     return {"status": "healthy"}

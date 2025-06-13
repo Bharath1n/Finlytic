@@ -14,6 +14,9 @@ data/loan_data.csv
 backend/model/loan_model.pkl
 backend/model/scaler.pkl
 notebooks/random_forest_model.pkl
+data/credit_risk_dataset.csv
+data/credit_risk_data_cleaned.csv
+data/credit_risk_data_encoded.csv
 
 # Python cache files
 __pycache__/
