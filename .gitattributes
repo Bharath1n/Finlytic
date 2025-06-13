@@ -1,1 +1,5 @@
 *.pkl filter=lfs diff=lfs merge=lfs -text
+notebooks/random_forest_model.pkl filter=lfs diff=lfs merge=lfs -text
+backend/model/loan_model.pkl filter=lfs diff=lfs merge=lfs -text
+backend/model/scaler.pkl filter=lfs diff=lfs merge=lfs -text
+data/loan_data.csv filter=lfs diff=lfs merge=lfs -text
