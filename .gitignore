@@ -1,4 +1,30 @@
-venv/
-__pycache__/
 *.pkl
 notebooks/*.pkl
+# Node.js dependencies
+node_modules/
+
+# Vite build output
+dist/
+
+# Python virtual environment
+venv/
+
+# Large files
+data/loan_data.csv
+backend/model/loan_model.pkl
+backend/model/scaler.pkl
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Environment files
+.env
+
+# Editor/IDE files
+.vscode/
+.idea/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
