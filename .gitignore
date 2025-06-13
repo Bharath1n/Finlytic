@@ -13,6 +13,7 @@ venv/
 data/loan_data.csv
 backend/model/loan_model.pkl
 backend/model/scaler.pkl
+notebooks/random_forest_model.pkl
 
 # Python cache files
 __pycache__/
