@@ -1,40 +1,12 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Menu, X, ChevronRight, MessageSquare, CreditCard, Shield, Bot } from "lucide-react";
+import { Menu, X, ChevronRight, CreditCard, Shield, Bot } from "lucide-react";
 import { Link } from "react-router-dom";
-import axios from "axios";
-import { useTheme } from './ThemeContext'; // Added useTheme import
+import { useTheme } from './ThemeContext';
 
 const Homepage = () => {
-  const { theme } = useTheme(); // Access theme state
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  const { theme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [message, setMessage] = useState("");
-  const [chatHistory, setChatHistory] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const toggleChat = () => setIsChatOpen(!isChatOpen);
-
-  const sendMessage = async () => {
-    if (!message.trim()) return;
-    const userMessage = { role: "user", content: message };
-    setChatHistory([...chatHistory, userMessage]);
-    setMessage("");
-    setError("");
-    setIsLoading(true);
-    try {
-      const response = await axios.post("http://localhost:8000/chat/", { message });
-      const botMessage = { role: "assistant", content: response.data.content };
-      setChatHistory((prev) => [...prev, botMessage]);
-    } catch (error) {
-      const errorMessage = { role: "assistant", content: "Error: Could not connect to chatbot. Please try again later." };
-      setError("Failed to get response from chatbot.");
-      setChatHistory((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div className={`min-h-screen font-mono ${theme === 'light' ? 'bg-white text-black' : 'bg-gray-900 text-white'}`}>
@@ -71,14 +43,6 @@ const Homepage = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className={`bg-gradient-to-r from-blue-500 to-blue-600 text-white px-8 py-4 rounded-full text-lg flex items-center ${theme === 'light' ? 'hover:from-blue-600 hover:to-blue-700' : 'hover:from-blue-700 hover:to-blue-800'} transition shadow-lg`}
-            onClick={toggleChat}
-          >
-            <MessageSquare className="mr-2 w-5 h-5" /> Chat with AI
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className={`bg-transparent border-2 ${theme === 'light' ? 'border-gray-300 text-gray-500 hover:bg-gray-100' : 'border-gray-600 text-gray-300 hover:bg-gray-800'} px-8 py-4 rounded-full text-lg flex items-center transition`}
           >
             <Link to="/dashboard" className="flex items-center">
               Explore Dashboard <ChevronRight className="ml-2 w-5 h-5" />
@@ -191,58 +155,6 @@ const Homepage = () => {
           </motion.button>
         </motion.form>
       </section>
-
-      {/* Chatbot */}
-      {isChatOpen && (
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className={`fixed bottom-8 right-8 w-80 ${theme === 'light' ? 'bg-white text-gray-500' : 'bg-gray-800 text-gray-300'} rounded-2xl shadow-xl p-6`}
-        >
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-bold text-blue-500 flex items-center">
-              <Bot className="mr-2 w-5 h-5" /> AI Assistant
-            </h3>
-            <button onClick={toggleChat} className={`${theme === 'light' ? 'text-gray-500 hover:text-red-500' : 'text-gray-300 hover:text-red-600'}`}>
-              <X size={24} />
-            </button>
-          </div>
-          <div className={`h-64 ${theme === 'light' ? 'bg-gray-100' : 'bg-gray-700'} rounded-xl p-4 overflow-y-auto`}>
-            {chatHistory.map((msg, idx) => (
-              <div key={idx} className={`mb-3 ${msg.role === "user" ? "text-right" : "text-left"}`}>
-                <span
-                  className={`inline-block p-3 rounded-full ${msg.role === "user" ? 'bg-blue-500 text-white' : theme === 'light' ? 'bg-white text-gray-500' : 'bg-gray-600 text-gray-300'}`}
-                >
-                  {msg.content}
-                </span>
-              </div>
-            ))}
-            {isLoading && <p className="text-center text-gray-500 text-lg">Loading...</p>}
-            {error && <p className="text-center text-red-500 text-lg mt-2">{error}</p>}
-          </div>
-          <div className="flex mt-4">
-            <input
-              type="text"
-              placeholder="Ask about loans or risks..."
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && sendMessage()}
-              className={`flex-1 p-3 ${theme === 'light' ? 'bg-white border-gray-300 text-gray-500' : 'bg-gray-700 border-gray-600 text-gray-300'} border rounded-l-full text-lg focus:outline-none focus:ring-2 focus:ring-blue-500`}
-              disabled={isLoading}
-            />
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 1 }}
-              onClick={sendMessage}
-              className={`p-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-r-full ${theme === 'light' ? 'hover:from-blue-600 hover:to-blue-700' : 'hover:from-blue-700 hover:to-blue-800'} transition disabled:bg-gray-500`}
-              disabled={isLoading}
-            >
-              <ChevronRight className="w-5 h-5" />
-            </motion.button>
-          </div>
-        </motion.div>
-      )}
     </div>
   );
 };
