@@ -226,28 +226,52 @@ async def predict_credit_risk(input_data: CreditRiskInput):
 async def chat_with_ai(input_data: ChatInput, request: Request):
     try:
         user_message = input_data.message
+        prompt = ""
+        if user_message.startswith("Loan Default Prediction:"):
+            prompt = (
+                "You are a financial assistant specializing in loan default prediction. "
+                "Explain model outputs (e.g., prediction: 0 = No Default, 1 = Default, probability) or guide users to provide inputs like Age, Income, LoanAmount, CreditScore, etc. "
+                "If asked about inputs, list the required fields: Age, Income, LoanAmount, CreditScore, MonthsEmployed, NumCreditLines, InterestRate, LoanTerm, DTIRatio, Education, EmploymentType, MaritalStatus, HasMortgage, HasDependents, LoanPurpose, HasCoSigner. "
+                "Use **Markdown formatting**:\n"
+                "- Use headings (##)\n"
+                "- Bold key terms\n"
+                "- Bullet points for clarity\n\n"
+                f"User: {user_message.replace('Loan Default Prediction:', '').strip()}"
+            )
+        elif user_message.startswith("Credit Risk Assessment:"):
+            prompt = (
+                "You are a credit risk expert. Explain risk categories (High/Medium/Low, based on probability: >0.7 High, 0.3-0.7 Medium, <0.3 Low) or guide users to input data like person_age, person_income, loan_intent, etc. "
+                "If asked about inputs, list the required fields: person_age, person_income, person_home_ownership, person_emp_length, loan_intent, loan_grade, loan_amnt, loan_int_rate, loan_percent_income, cb_person_default_on_file, cb_person_cred_hist_length. "
+                "Use **Markdown formatting**:\n"
+                "- Use headings (##)\n"
+                "- Bold key terms\n"
+                "- Bullet points for clarity\n\n"
+                f"User: {user_message.replace('Credit Risk Assessment:', '').strip()}"
+            )
+        else:
+            prompt = (
+                "You are a financial assistant specializing in general financial advice. "
+                "Provide concise, accurate responses about budgeting, credit scores, loans, or related topics. "
+                "Use a knowledge base with FAQs like:\n"
+                "- **Credit Score**: A number from 300-850 indicating creditworthiness.\n"
+                "- **Loan Basics**: Loans are borrowed funds repaid with interest over time.\n"
+                "If the query is unrelated, politely redirect to financial topics. "
+                "Use **Markdown formatting**:\n"
+                "- Use headings (##)\n"
+                "- Bold key terms\n"
+                "- Bullet points for clarity\n\n"
+                f"User: {user_message}"
+            )
+
         response = chat_model.generate_content(
             [
                 {
                     "role": "user",
-                    "parts": [
-                        {
-                            "text": (
-                                "You are a financial assistant specializing in loan default and credit risk analysis. "
-                                "Provide concise, accurate, and helpful responses to user queries about financial risks, loans, credit scores, or related topics. "
-                                "Use **Markdown formatting** in your responses:\n"
-                                "- Use headings (##)\n"
-                                "- Bold key terms\n"
-                                "- Bullet points for clarity\n\n"
-                                "If the query is unrelated, politely redirect the user to ask about financial topics.\n\n"
-                                f"User: {user_message}"
-                            )
-                        }
-                    ]
+                    "parts": [{"text": prompt}]
                 }
             ],
             generation_config={
-                "max_output_tokens": 150,
+                "max_output_tokens": 500,
                 "temperature": 0.7,
             }
         )
