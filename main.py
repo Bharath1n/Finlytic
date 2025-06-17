@@ -1,16 +1,27 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, field_validator
 import pandas as pd
 import pickle
+from preprocessing import preprocess_input
+import google.generativeai as genai
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from dotenv import load_dotenv
 import os
 import logging
-from preprocessing import preprocess_input
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+load_dotenv()
+
 app = FastAPI()
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,6 +30,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    logger.error("❌ GEMINI_API_KEY not found in environment variables.")
+    raise EnvironmentError("GEMINI_API_KEY is missing in the .env file.")
+
+# Optional: choose model from env
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+
+# Configure Gemini
+genai.configure(api_key=GEMINI_API_KEY)
+chat_model = genai.GenerativeModel(GEMINI_MODEL)
 
 MODEL_DIR = "backend/model"
 MODEL_PATH = os.path.join(MODEL_DIR, "loan_model.pkl")
@@ -51,6 +73,9 @@ try:
 except Exception as e:
     logger.error(f"Error loading credit risk model/scaler: {e}", exc_info=True)
     raise ValueError(f"Failed to load credit risk model or scaler: {str(e)}")
+
+class ChatInput(BaseModel):
+    message: str
 
 class LoanInput(BaseModel):
     Age: int
@@ -196,6 +221,41 @@ async def predict_credit_risk(input_data: CreditRiskInput):
         logger.error(f"Error in predict_credit_risk: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
 
+@app.post("/chat/")
+@limiter.limit("5/minute")
+async def chat_with_ai(input_data: ChatInput, request: Request):
+    try:
+        user_message = input_data.message
+        response = chat_model.generate_content(
+            [
+                {
+                    "role": "user",
+                    "parts": [
+                        {
+                            "text": (
+                                "You are a financial assistant specializing in loan default and credit risk analysis. "
+                                "Provide concise, accurate, and helpful responses to user queries about financial risks, loans, credit scores, or related topics. "
+                                "Use **Markdown formatting** in your responses:\n"
+                                "- Use headings (##)\n"
+                                "- Bold key terms\n"
+                                "- Bullet points for clarity\n\n"
+                                "If the query is unrelated, politely redirect the user to ask about financial topics.\n\n"
+                                f"User: {user_message}"
+                            )
+                        }
+                    ]
+                }
+            ],
+            generation_config={
+                "max_output_tokens": 150,
+                "temperature": 0.7,
+            }
+        )
+        return {"content": response.text.strip()}
+    except Exception as e:
+        logger.error(f"Error in chat_with_ai: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error processing chat request: {str(e)}")
+            
 try:
     df = pd.read_csv("data/loan_data.csv")
     if df.empty:
