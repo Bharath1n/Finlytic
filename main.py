@@ -44,7 +44,7 @@ if not GEMINI_API_KEY:
     raise EnvironmentError("GEMINI_API_KEY is missing in the .env file.")
 
 # Set the API key as an environment variable (already done via load_dotenv)
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 chat_model = genai.GenerativeModel(GEMINI_MODEL)
 
 MODEL_DIR = "backend/model"
