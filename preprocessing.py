@@ -99,8 +99,8 @@ def preprocess_input(data, scaler, model_type='loan_default'):
         # Handle dict input for credit risk
         if not isinstance(data, dict):
             raise ValueError("Credit risk input must be a dictionary")
-        
-        input_dict = data.copy()
+        input_dict = {k: v.lower().strip() if isinstance(v, str) else v for k, v in data.items()}
+        # input_dict = data.copy()
         
         # Validate and encode categorical variables
         for col in ['person_home_ownership', 'loan_intent', 'loan_grade', 'cb_person_default_on_file']:

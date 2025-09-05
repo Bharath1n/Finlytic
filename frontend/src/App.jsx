@@ -1,20 +1,25 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { Menu, X, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Home from './components/Home';
-import PredictionForm from './components/PredictionForm';
-import PredictionFormCreditRisk from './components/PredictionFormCreditRisk';
-import Dashboard from './components/Dashboard';
-import Info from './components/Info';
-import Chatbot from './components/Chatbot';
 import { ThemeProvider, ThemeToggle, useTheme } from './components/ThemeContext';
 
-// Wrapper to conditionally render floating chatbot
+const Home = lazy(() => import('./components/Home'));
+const PredictionForm = lazy(() => import('./components/PredictionForm'));
+const PredictionFormCreditRisk = lazy(() => import('./components/PredictionFormCreditRisk'));
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const FraudPredictionForm = lazy(() => import('./components/FraudPredictionForm'));
+const Info = lazy(() => import('./components/Info'));
+const Chatbot = lazy(() => import('./components/Chatbot'));
+
 const FloatingChatbot = () => {
   const location = useLocation();
   if (location.pathname === '/chatbot') return null;
-  return <Chatbot isFullPage={false} />;
+  return (
+    <Suspense fallback={<div className="fixed bottom-6 right-6 w-12 h-12 bg-gray-300 rounded-full animate-pulse"></div>}>
+      <Chatbot isFullPage={false} />
+    </Suspense>
+  );
 };
 
 const AppContent = () => {
@@ -22,7 +27,6 @@ const AppContent = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
-  // Animation variants for mobile menu
   const menuVariants = {
     closed: { x: '100%', opacity: 0 },
     open: { x: 0, opacity: 1 },
@@ -33,40 +37,44 @@ const AppContent = () => {
       <div className={`min-h-screen font-mono ${theme === 'light' ? 'bg-gradient-to-br from-indigo-50 to-purple-50' : 'bg-gradient-to-br from-gray-900 to-gray-800'}`}>
         <nav className={`fixed top-0 left-0 w-full z-50 py-6 px-8 ${theme === 'light' ? 'bg-white/95' : 'bg-gray-800/95'} backdrop-blur-lg rounded-b-2xl shadow-lg hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-shadow`}>
           <div className="max-w-7xl mx-auto flex justify-between items-center">
-            {/* Logo or Brand */}
-            <Link to="/" className={`text-xl font-bold ${theme === 'light' ? 'text-blue-500' : 'text-blue-400'}`}>
-              FIN-LYTIC
+            <Link to="/" aria-label="Home page" className={`text-xl font-bold ${theme === 'light' ? 'text-blue-500' : 'text-blue-400'}`}>
+              FIN-LYTICS
             </Link>
-            {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-8">
-              <Link to="/" className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition text-lg flex items-center`}>
+              <Link to="/" className={`text-lg flex items-center ${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition`}>
                 HOME <ChevronRight className="ml-1 w-4 h-4" />
               </Link>
-              <Link to="/dashboard" className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition text-lg flex items-center`}>
-                DASHBOARD <ChevronRight className="ml-1 w-4 h-4" />
+              <Link to="/dashboard" className={`text-lg flex items-center ${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition`}>
+                DASHBOARDS <ChevronRight className="ml-1 w-4 h-4" />
               </Link>
-              <Link to="/loan" className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition text-lg flex items-center`}>
-                LOAN PREDICTION <ChevronRight className="ml-1 w-4 h-4" />
+              <Link to="/loan" className={`text-lg flex items-center ${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition`}>
+                LOAN PREDICTIONS <ChevronRight className="ml-1 w-4 h-4" />
               </Link>
-              <Link to="/credit-risk" className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition text-lg flex items-center`}>
-                CREDIT RISK <ChevronRight className="ml-1 w-4 h-4" />
+              <Link to="/credit-risk" className={`text-lg flex items-center ${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition`}>
+                CREDIT RISKS <ChevronRight className="ml-1 w-4 h-4" />
               </Link>
-              <Link to="/chatbot" className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition text-lg flex items-center`}>
+              <Link to="/chatbot" className={`text-lg flex items-center ${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition`}>
                 CHATBOT <ChevronRight className="ml-1 w-4 h-4" />
               </Link>
-              <Link to="/info" className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition text-lg flex items-center`}>
+              {/* <Link to="/fraud-detection" className={`text-lg flex items-center ${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition`}>
+                FRAUD DETECTION <ChevronRight className="ml-1 w-4 h-4" />
+              </Link> */}
+              <Link to="/info" className={`text-lg flex items-center ${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition`}>
                 LEARN MORE <ChevronRight className="ml-1 w-4 h-4" />
               </Link>
               <ThemeToggle />
             </div>
-            {/* Hamburger Button */}
-            <button className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} md:hidden`} onClick={toggleMenu}>
+            <button
+              aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={isMenuOpen}
+              className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} md:hidden`}
+              onClick={toggleMenu}
+            >
               {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
             </button>
           </div>
         </nav>
 
-        {/* Mobile Menu */}
         <AnimatePresence>
           {isMenuOpen && (
             <motion.div
@@ -118,6 +126,13 @@ const AppContent = () => {
               >
                 CHATBOT <ChevronRight className="ml-1 w-4 h-4" />
               </Link>
+              {/* <Link
+                to="/fraud-detection"
+                className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition text-lg flex items-center`}
+                onClick={toggleMenu}
+              >
+                FRAUD DETECTION <ChevronRight className="ml-1 w-4 h-4" />
+              </Link> */}
               <Link
                 to="/info"
                 className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition text-lg flex items-center`}
@@ -132,7 +147,6 @@ const AppContent = () => {
           )}
         </AnimatePresence>
 
-        {/* Overlay for Mobile Menu */}
         {isMenuOpen && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -145,14 +159,17 @@ const AppContent = () => {
         )}
 
         <div className="max-w-7xl mx-auto px-4 py-8 mt-11">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/loan" element={<PredictionForm />} />
-            <Route path="/credit-risk" element={<PredictionFormCreditRisk />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/info" element={<Info />} />
-            <Route path="/chatbot" element={<Chatbot isFullPage={true} />} />
-          </Routes>
+          <Suspense fallback={<div className="text-center text-xl">Loading...</div>}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/loan" element={<PredictionForm />} />
+              <Route path="/credit-risk" element={<PredictionFormCreditRisk />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/fraud-detection" element={<FraudPredictionForm />} />
+              <Route path="/info" element={<Info />} />
+              <Route path="/chatbot" element={<Chatbot isFullPage={true} />} />
+            </Routes>
+          </Suspense>
         </div>
         <FloatingChatbot />
         <footer className={`py-12 px-8 text-center font-mono ${theme === 'light' ? 'bg-black text-white' : 'bg-gray-950 text-gray-300'}`}>

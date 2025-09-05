@@ -4,6 +4,7 @@ import { useTheme } from './ThemeContext';
 import { motion } from 'framer-motion';
 import { CreditCard } from 'lucide-react';
 
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 function PredictionForm() {
   const { theme } = useTheme();
   const [formData, setFormData] = useState({
@@ -40,7 +41,7 @@ function PredictionForm() {
     setIsLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:8000/predict/', formData);
+      const response = await axios.post(`${backendUrl}/predict/`, formData);
       setPrediction(response.data);
     } catch (err) {
       setError(err.response?.data?.detail || 'An error occurred. Please check your inputs or ensure the backend server is running.');
@@ -50,20 +51,20 @@ function PredictionForm() {
   };
 
   return (
-    <div className={`font-mono ${theme === 'light' ? 'bg-white text-black' : 'bg-gray-900 text-white'}`}>
+    <div className={`font-serif ${theme === 'light' ? 'bg-white text-black' : 'bg-gray-900 text-white'}`}>
        <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
-        className={`rounded-2xl shadow-lg p-8 max-w-4xl mx-auto ${theme === 'light' ? 'bg-white' : 'bg-gray-800'} hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-shadow`}
+        className={`rounded-2xl shadow-lg p-8 max-w-4xl mx-auto mt-12 ${theme === 'light' ? 'bg-white' : 'bg-gray-800'} hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-shadow`}
       >
-        <h2 className="text-3xl font-bold text-center mb-6 flex items-center justify-center">
-          <CreditCard className="mr-2 w-8 h-8 text-blue-500" /> Loan Default Prediction
+        <h2 className="text-3xl font-bold text-center mb-6 flex">
+          <CreditCard className="mr-2 w-8 h-8 text-blue-500" /> LOAN-DEFAULT
         </h2>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Personal Information */}
           <div className="space-y-4">
-            <h3 className="text-xl font-semibold text-blue-500">Personal Information</h3>
+            <h3 className="text-xl font-semibold text-blue-500">PERSONAL INFORMATION:</h3>
             <div>
               <label className="block text-sm font-medium">Age</label>
               <input
@@ -143,7 +144,7 @@ function PredictionForm() {
 
           {/* Financial Information */}
           <div className="space-y-4">
-            <h3 className="text-xl font-semibold text-blue-500">Financial Information</h3>
+            <h3 className="text-xl font-semibold text-blue-500">FINANCIAL INFORMATION:</h3>
             <div>
               <label className="block text-sm font-medium">Income</label>
               <input
@@ -261,7 +262,7 @@ function PredictionForm() {
 
           {/* Loan Details */}
           <div className="space-y-4">
-            <h3 className="text-xl font-semibold text-blue-500">Loan Details</h3>
+            <h3 className="text-xl font-semibold text-blue-500">LOAN DETAILS:</h3>
             <div>
               <label className="block text-sm font-medium">Has Mortgage</label>
               <select

@@ -7,7 +7,7 @@ const Info = () => {
   const { theme } = useTheme();
 
   return (
-    <div className={`min-h-screen font-mono ${theme === 'light' ? 'bg-white text-black' : 'bg-gray-900 text-white'}`}>
+    <div className={`min-h-screen font-serif ${theme === 'light' ? 'bg-white text-black' : 'bg-gray-900 text-white'}`}>
       {/* Info Section */}
       <motion.section
         initial={{ opacity: 0 }}
@@ -34,7 +34,7 @@ const Info = () => {
               {/* Loan Default Prediction Section */}
               <section>
                 <h3 className="text-2xl font-semibold mb-4 flex items-center">
-                  <CreditCard className="mr-2 w-6 h-6 text-blue-500" /> Loan Prediction
+                  <CreditCard className="mr-2 w-6 h-6 text-blue-500" /> Loan Default Prediction
                 </h3>
                 <div className="space-y-4">
                   <div>

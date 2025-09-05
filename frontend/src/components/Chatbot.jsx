@@ -1,10 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, X, Trash2, ChevronRight } from 'lucide-react';
+import { MessageSquare, X, Trash2, ChevronRight, AlertTriangle } from 'lucide-react';
 import { useTheme } from './ThemeContext';
 import ReactMarkdown from 'react-markdown';
+import { v4 as uuidv4 } from 'uuid';
 
+const fraudFeatures = {
+  V1: -2.312227, V2: 1.951992, V3: -1.609851, V4: 3.997906, V5: -0.522188,
+  V6: -1.426545, V7: -2.537387, V8: 1.391657, V9: -2.770089, V10: -2.772272,
+  V11: 3.202033, V12: -2.899907, V13: -0.595222, V14: -4.289254, V15: 0.389724,
+  V16: -1.140747, V17: -2.830056, V18: -0.016822, V19: 0.416956, V20: 0.126911,
+  V21: 0.517232, V22: -0.035049, V23: -0.465211, V24: 0.320198, V25: 0.044519,
+  V26: 0.177840, V27: 0.261145, V28: -0.143276
+};
+
+const nonFraudFeatures = {
+  V1: -1.359807, V2: -0.072781, V3: 2.536347, V4: 1.378155, V5: -0.338321,
+  V6: 0.462388, V7: 0.239599, V8: 0.098698, V9: 0.363787, V10: 0.090794,
+  V11: -0.551600, V12: -0.617801, V13: -0.991390, V14: -0.311169, V15: 1.468177,
+  V16: -0.470401, V17: 0.207971, V18: 0.025791, V19: 0.403993, V20: 0.251412,
+  V21: -0.018307, V22: 0.277838, V23: -0.110474, V24: 0.066928, V25: 0.128539,
+  V26: -0.189115, V27: 0.133558, V28: -0.021053
+};
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const Chatbot = ({ isFullPage = false }) => {
   const { theme } = useTheme();
   const [isChatOpen, setIsChatOpen] = useState(isFullPage);
@@ -14,34 +33,66 @@ const Chatbot = ({ isFullPage = false }) => {
   const [error, setError] = useState('');
   const [mode, setMode] = useState('general');
   const [requestCount, setRequestCount] = useState(0);
+  const [retryCount, setRetryCount] = useState(0);
+  const [sessionId] = useState(uuidv4());
+  const [rateLimitTimer, setRateLimitTimer] = useState(null);
 
-  // Load chat history from localStorage
   useEffect(() => {
-    const savedHistory = localStorage.getItem(`chatHistory_${mode}`);
-    if (savedHistory) {
-      setChatHistory(JSON.parse(savedHistory));
-    } else {
-      // Welcome message per mode
-      const welcomeMessages = {
-        general: '**Welcome to General Mode!** Ask about budgeting, credit scores, or financial basics. Try: "What is a credit score?"',
-        loan_prediction: '**Loan Prediction Mode** Ask about loan default risks or provide details (e.g., Age: 30, Income: 50000) for a prediction. Try: "What increases loan default risk?"',
-        credit_risk: '**Credit Risk Mode** Ask about credit risk or provide details (e.g., Age: 25, Income: 40000, Loan Intent: education) for an assessment. Try: "What is High Risk?"'
-      };
-      setChatHistory([{ role: 'assistant', content: welcomeMessages[mode] }]);
-    }
-  }, [mode]);
+    localStorage.setItem('sessionId', sessionId);
+    const fetchChatHistory = async () => {
+      try {
+        const response = await axios.get(`${process.env.REACT_APP_API_URL}/chat_history/${sessionId}/${mode}`);
+        setChatHistory(response.data.messages.length ? response.data.messages : [{ role: 'assistant', content: welcomeMessages[mode] }]);
+      } catch (err) {
+        setChatHistory([{ role: 'assistant', content: welcomeMessages[mode] }]);
+      }
+    };
+    fetchChatHistory();
+  }, [mode, sessionId]);
 
-  // Save chat history to localStorage
-  useEffect(() => {
-    localStorage.setItem(`chatHistory_${mode}`, JSON.stringify(chatHistory));
-  }, [chatHistory, mode]);
+  const welcomeMessages = {
+    general: '**Welcome to General Mode!** Ask about budgeting, credit scores, or financial tips. Try: "What is a credit score?"',
+    loan_prediction: '**Loan Prediction Mode** Predict loan default risk by entering data (e.g., Age: 30, Income: 50000, LoanAmount: 10000, CreditScore: 700, MonthsEmployed: 12, NumCreditLines: 2, InterestRate: 5.0, LoanTerm: 36, DTIRatio: 0.3, Education: bachelor, EmploymentType: full-time, MaritalStatus: single, HasMortgage: no, HasDependents: no, LoanPurpose: auto, HasCoSigner: yes). Try: "List required inputs"',
+    credit_risk: '**Credit Risk Mode** Assess credit risk by entering data (e.g., person_age: 25, person_income: 40000, person_home_ownership: rent, person_emp_length: 2, loan_intent: education, loan_grade: b, loan_amnt: 5000, loan_int_rate: 6.0, loan_percent_income: 0.2, cb_person_default_on_file: n, cb_person_cred_hist_length: 3). Try: "List required inputs"',
+    fraud_detection: '**Fraud Detection Mode** Predict fraud risk by entering Time and Amount. V1-V28 are preset in the form at /fraud. Try: "List fraud inputs" or "Sample fraud prediction".'
+  };
+
+  const loanFields = [
+    'Age', 'Income', 'LoanAmount', 'CreditScore', 'MonthsEmployed', 'NumCreditLines',
+    'InterestRate', 'LoanTerm', 'DTIRatio', 'Education', 'EmploymentType', 'MaritalStatus',
+    'HasMortgage', 'HasDependents', 'LoanPurpose', 'HasCoSigner'
+  ];
+  const creditRiskFields = [
+    'person_age', 'person_income', 'person_home_ownership', 'person_emp_length',
+    'loan_intent', 'loan_grade', 'loan_amnt', 'loan_int_rate', 'loan_percent_income',
+    'cb_person_default_on_file', 'cb_person_cred_hist_length'
+  ];
+  const fraudFields = ['Time', 'Amount'];
+
+  const validValues = {
+    Education: ['high school', 'bachelor', "master's", 'phd'],
+    EmploymentType: ['full-time', 'part-time', 'self-employed', 'unemployed'],
+    MaritalStatus: ['single', 'married', 'divorced'],
+    HasMortgage: ['yes', 'no'],
+    HasDependents: ['yes', 'no'],
+    LoanPurpose: ['auto', 'business', 'education', 'home', 'other'],
+    HasCoSigner: ['yes', 'no'],
+    person_home_ownership: ['rent', 'own', 'mortgage', 'other'],
+    loan_intent: ['personal', 'education', 'medical', 'venture', 'homeimprovement', 'debtconsolidation'],
+    loan_grade: ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
+    cb_person_default_on_file: ['y', 'n']
+  };
 
   const toggleChat = () => !isFullPage && setIsChatOpen(!isChatOpen);
 
-  const clearChat = () => {
-    setChatHistory([]);
-    setError('');
-    localStorage.removeItem(`chatHistory_${mode}`);
+  const clearChat = async () => {
+    try {
+      await axios.delete(`${backendUrl}/chat_history/${sessionId}/${mode}`);
+      setChatHistory([{ role: 'assistant', content: welcomeMessages[mode] }]);
+      setError('');
+    } catch (err) {
+      setError('Failed to clear chat history.');
+    }
   };
 
   const parseInputData = (msg) => {
@@ -49,41 +100,39 @@ const Chatbot = ({ isFullPage = false }) => {
     const regex = /(\w+):\s*([^,]+)(?:,|$)/g;
     let match;
     while ((match = regex.exec(msg))) {
-      fields[match[1].trim()] = match[2].trim();
+      const key = match[1].trim();
+      const value = match[2].trim();
+      fields[key] = isNaN(value) ? value.toLowerCase() : Number(value);
     }
     return fields;
   };
 
+  const validateInputs = (fields, requiredFields, mode) => {
+    const missing = requiredFields.filter(field => !(field in fields));
+    if (missing.length > 0) {
+      return `Missing required fields: ${missing.join(', ')}`;
+    }
+
+    const invalid = [];
+    for (const field of requiredFields) {
+      if (validValues[field]) {
+        if (!validValues[field].includes(fields[field])) {
+          invalid.push(`${field} must be one of ${validValues[field].join(', ')}`);
+        }
+      } else if (typeof fields[field] === 'number') {
+        if (isNaN(fields[field]) || (field === 'Time' || field === 'Amount' ? fields[field] < 0 : false)) {
+          invalid.push(`${field} must be a valid number ${field === 'Time' || field === 'Amount' ? '>= 0' : ''}`);
+        }
+      }
+    }
+    return invalid.length > 0 ? invalid.join('; ') : null;
+  };
+
   const sendMessage = async () => {
     if (!message.trim()) return;
-    let prefixedMessage = message;
     let endpoint = '/chat/';
-    let payload = { message };
+    let payload = { session_id: sessionId, user_id: null, mode, message };
     let isPrediction = false;
-
-    // Check for prediction inputs
-    if (mode === 'loan_prediction' && message.toLowerCase().includes('predict')) {
-      const fields = parseInputData(message);
-      if (Object.keys(fields).length >= 16) { // LoanInput has 16 fields
-        endpoint = '/predict/';
-        payload = fields;
-        isPrediction = true;
-      }
-    } else if (mode === 'credit_risk' && message.toLowerCase().includes('assess')) {
-      const fields = parseInputData(message);
-      if (Object.keys(fields).length >= 11) { // CreditRiskInput has 11 fields
-        endpoint = '/credit_risk/';
-        payload = fields;
-        isPrediction = true;
-      }
-    } else {
-      if (mode === 'loan_prediction') {
-        prefixedMessage = `Loan Default Prediction: ${message}`;
-      } else if (mode === 'credit_risk') {
-        prefixedMessage = `Credit Risk Assessment: ${message}`;
-      }
-      payload = { message: prefixedMessage };
-    }
 
     const userMessage = { role: 'user', content: message };
     setChatHistory([...chatHistory, userMessage]);
@@ -92,33 +141,115 @@ const Chatbot = ({ isFullPage = false }) => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(`http://localhost:8000${endpoint}`, payload);
+      if (mode === 'loan_prediction' && message.toLowerCase().includes('predict')) {
+        const fields = parseInputData(message);
+        const validationError = validateInputs(fields, loanFields, mode);
+        if (validationError) {
+          throw new Error(validationError);
+        }
+        if (Object.keys(fields).length >= loanFields.length) {
+          endpoint = '/predict/';
+          payload = fields;
+          isPrediction = true;
+        } else {
+          const botMessage = {
+            role: 'assistant',
+            content: `**Incomplete Loan Prediction Inputs**  
+            Please provide all required fields:  
+            - ${loanFields.join('\n- ')}  
+            Example: Age: 30, Income: 50000, LoanAmount: 10000, CreditScore: 700, MonthsEmployed: 12, NumCreditLines: 2, InterestRate: 5.0, LoanTerm: 36, DTIRatio: 0.3, Education: bachelor, EmploymentType: full-time, MaritalStatus: single, HasMortgage: no, HasDependents: no, LoanPurpose: auto, HasCoSigner: yes`
+          };
+          setChatHistory((prev) => [...prev, botMessage]);
+          setIsLoading(false);
+          return;
+        }
+      } else if (mode === 'credit_risk' && message.toLowerCase().includes('assess')) {
+        const fields = parseInputData(message);
+        const validationError = validateInputs(fields, creditRiskFields, mode);
+        if (validationError) {
+          throw new Error(validationError);
+        }
+        if (Object.keys(fields).length >= creditRiskFields.length) {
+          endpoint = '/credit_risk/';
+          payload = fields;
+          isPrediction = true;
+        } else {
+          const botMessage = {
+            role: 'assistant',
+            content: `**Incomplete Credit Risk Inputs**  
+            Please provide all required fields:  
+            - ${creditRiskFields.join('\n- ')}  
+            Example: person_age: 25, person_income: 40000, person_home_ownership: rent, person_emp_length: 2, loan_intent: education, loan_grade: b, loan_amnt: 5000, loan_int_rate: 6.0, loan_percent_income: 0.2, cb_person_default_on_file: n, cb_person_cred_hist_length: 3`
+          };
+          setChatHistory((prev) => [...prev, botMessage]);
+          setIsLoading(false);
+          return;
+        }
+      } else if (mode === 'fraud_detection' && message.toLowerCase().includes('predict') && /Time:\s*\d+/.test(message) && /Amount:\s*[\d.]+/.test(message)) {
+        const fields = parseInputData(message);
+        const validationError = validateInputs(fields, fraudFields, mode);
+        if (validationError) {
+          throw new Error(validationError);
+        }
+        if (Object.keys(fields).length >= fraudFields.length) {
+          endpoint = '/fraud/';
+          payload = { ...fraudFeatures, ...fields };
+          isPrediction = true;
+        } else {
+          const botMessage = {
+            role: 'assistant',
+            content: `**Incomplete Fraud Detection Inputs**  
+            Please provide all required fields:  
+            - ${fraudFields.join('\n- ')}  
+            Note: V1-V28 are preset in the form at /fraud. Try the form or use: Time: 406, Amount: 0 for a fraud sample.`
+          };
+          setChatHistory((prev) => [...prev, botMessage]);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      const response = await axios.post(`${backendUrl}${endpoint}`, payload);
       let botMessage;
       if (isPrediction && endpoint === '/predict/') {
         botMessage = {
           role: 'assistant',
-          content: `**Loan Prediction Result**  
-          - **Prediction**: ${response.data.prediction === 0 ? 'No Default' : 'Default'}  
-          - **Probability**: ${(response.data.probability * 100).toFixed(2)}%`
+          content: `**Loan Default Prediction**  
+          - **Result**: ${response.data.prediction === 0 ? 'No Default' : 'Default'}  
+          - **Probability**: ${(response.data.probability * 100).toFixed(2)}%  
+          *Note*: A higher probability indicates greater risk of default.`
         };
       } else if (isPrediction && endpoint === '/credit_risk/') {
         botMessage = {
           role: 'assistant',
           content: `**Credit Risk Assessment**  
           - **Risk Category**: ${response.data.credit_risk_prediction}  
-          - **Probability**: ${(response.data.credit_risk_probability * 100).toFixed(2)}%`
+          - **Probability**: ${(response.data.credit_risk_probability * 100).toFixed(2)}%  
+          *Note*: High (>70%), Medium (30-70%), Low (<30%) risk.`
+        };
+      } else if (isPrediction && endpoint === '/fraud/') {
+        botMessage = {
+          role: 'assistant',
+          content: `**Fraud Detection Prediction**  
+          - **Result**: ${response.data.fraud_prediction}  
+          - **Probability**: ${(response.data.fraud_probability * 100).toFixed(2)}%  
+          *Note*: A probability >10% indicates likely fraud.`
         };
       } else {
         botMessage = { role: 'assistant', content: response.data.content };
       }
       setChatHistory((prev) => [...prev, botMessage]);
       setRequestCount((prev) => prev + 1);
+      setRetryCount(0);
+      if (response.status === 429) {
+        setRateLimitTimer(60);
+      }
     } catch (error) {
-      let errorMsg = 'Error: Could not connect to chatbot. Please try again later.';
+      let errorMsg = 'Error: Could not process request. Please try again.';
       if (error.response?.status === 429) {
         errorMsg = 'Too many requests. Please wait a minute and try again.';
-      } else if (error.response?.status === 400) {
-        errorMsg = `Invalid input: ${error.response.data.detail}`;
+      } else if (error.response?.status === 400 || error.message) {
+        errorMsg = `Invalid input: ${error.response?.data?.detail || error.message}`;
       }
       const errorMessage = { role: 'assistant', content: errorMsg };
       setError(errorMsg);
@@ -130,19 +261,48 @@ const Chatbot = ({ isFullPage = false }) => {
 
   const handleModeChange = (newMode) => {
     setMode(newMode);
-    setChatHistory([]);
+    setChatHistory([{ role: 'assistant', content: welcomeMessages[newMode] }]);
     setRequestCount(0);
+    setError('');
+    setRateLimitTimer(null);
   };
 
   const quickReplies = {
     general: ['What is a credit score?', 'How to budget?', 'Explain loans'],
     loan_prediction: ['List required inputs', 'Explain default risk', 'Sample prediction'],
-    credit_risk: ['What is High Risk?', 'List required inputs', 'Sample assessment']
+    credit_risk: ['List required inputs', 'What is High Risk?', 'Sample assessment'],
+    fraud_detection: ['List fraud inputs', 'Explain fraud prediction', 'Sample fraud prediction']
   };
 
   const handleQuickReply = (reply) => {
-    setMessage(reply);
-    sendMessage();
+    if (reply === 'List required inputs') {
+      const fields = mode === 'loan_prediction' ? loanFields : mode === 'credit_risk' ? creditRiskFields : fraudFields;
+      const botMessage = {
+        role: 'assistant',
+        content: `**Required Inputs for ${mode === 'loan_prediction' ? 'Loan Prediction' : mode === 'credit_risk' ? 'Credit Risk' : 'Fraud Detection'}**  
+        - ${fields.join('\n- ')}`
+      };
+      setChatHistory((prev) => [...prev, botMessage]);
+    } else if (reply === 'Sample prediction' || reply === 'Sample assessment') {
+      const sampleInput = mode === 'loan_prediction'
+        ? 'Predict loan for Age: 30, Income: 50000, LoanAmount: 10000, CreditScore: 700, MonthsEmployed: 12, NumCreditLines: 2, InterestRate: 5.0, LoanTerm: 36, DTIRatio: 0.3, Education: bachelor, EmploymentType: full-time, MaritalStatus: single, HasMortgage: no, HasDependents: no, LoanPurpose: auto, HasCoSigner: yes'
+        : 'Assess risk for person_age: 25, person_income: 40000, person_home_ownership: rent, person_emp_length: 2, loan_intent: education, loan_grade: b, loan_amnt: 5000, loan_int_rate: 6.0, loan_percent_income: 0.2, cb_person_default_on_file: n, cb_person_cred_hist_length: 3';
+      setMessage(sampleInput);
+      sendMessage();
+    } else if (reply === 'List fraud inputs') {
+      const botMessage = {
+        role: 'assistant',
+        content: '**Required Inputs for Fraud Detection**  \n- Time (seconds since first transaction)  \n- Amount (transaction amount in dollars)  \nNote: V1-V28 are preset in the form at /fraud.'
+      };
+      setChatHistory((prev) => [...prev, botMessage]);
+    } else if (reply === 'Sample fraud prediction') {
+      const sampleInput = 'Predict fraud for Time: 406, Amount: 0';
+      setMessage(sampleInput);
+      sendMessage();
+    } else {
+      setMessage(reply);
+      sendMessage();
+    }
   };
 
   const chatWindow = (
@@ -151,11 +311,10 @@ const Chatbot = ({ isFullPage = false }) => {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 50 }}
       transition={{ duration: 0.3 }}
-      className={`${isFullPage ? 'w-full max-w-5xl mx-auto h-[80vh] flex flex-col mt-12' : 'fixed bottom-24 right-8 w-96 max-h-[80vh]'} ${
+      className={`${isFullPage ? 'w-full max-w-4xl mx-auto h-[75vh] flex flex-col mt-12' : 'fixed bottom-24 right-8 w-96 max-h-[80vh]'} ${
         theme === 'light' ? 'bg-white text-gray-500' : 'bg-gray-800 text-gray-300'
       } rounded-2xl shadow-xl p-6 flex flex-col ${isFullPage ? '' : 'z-50'}`}
     >
-      {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-xl font-bold text-blue-500 flex items-center">
           <MessageSquare className="mr-2 w-5 h-5" /> AI Financial Assistant
@@ -169,16 +328,14 @@ const Chatbot = ({ isFullPage = false }) => {
           </button>
         )}
       </div>
-
-      {/* Mode Toggle Buttons */}
-      <div className="flex justify-center mb-4 space-x-2">
-        {['general', 'loan_prediction', 'credit_risk'].map((m) => (
+      <div className="flex justify-center mb-4 space-x-2 flex-wrap">
+        {['general', 'loan_prediction', 'credit_risk', 'fraud_detection'].map((m) => (
           <motion.button
             key={m}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => handleModeChange(m)}
-            className={`px-3 py-1 rounded-full text-sm font-semibold transition ${
+            className={`px-3 py-1 rounded-full text-sm font-semibold transition m-1 ${
               mode === m
                 ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
                 : theme === 'light'
@@ -186,12 +343,10 @@ const Chatbot = ({ isFullPage = false }) => {
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
           >
-            {m === 'general' ? 'General' : m === 'loan_prediction' ? 'Loan Prediction' : 'Credit Risk'}
+            {m === 'general' ? 'General' : m === 'loan_prediction' ? 'Loan Prediction' : m === 'credit_risk' ? 'Credit Risk' : 'Fraud Detection'}
           </motion.button>
         ))}
       </div>
-
-      {/* Chat History */}
       <div
         className={`flex-1 ${theme === 'light' ? 'bg-gray-100' : 'bg-gray-700'} rounded-xl p-4 overflow-y-auto ${
           isFullPage ? 'max-h-[60vh]' : 'max-h-[50vh]'
@@ -211,7 +366,7 @@ const Chatbot = ({ isFullPage = false }) => {
                   ? 'bg-blue-500 text-white'
                   : theme === 'light'
                   ? 'bg-white text-gray-500'
-                  : 'bg-gray-600 text-gray-300'
+                  : 'bg-gray-600 text-white'
               } max-w-[80%]`}
             >
               {msg.role === 'assistant' ? <ReactMarkdown>{msg.content}</ReactMarkdown> : msg.content}
@@ -219,23 +374,42 @@ const Chatbot = ({ isFullPage = false }) => {
           </motion.div>
         ))}
         {isLoading && (
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-gray-500 text-sm">
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center text-gray-500 text-sm"
+          >
             Typing...
           </motion.p>
         )}
         {error && (
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-red-500 text-sm mt-2">
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center text-red-500 text-sm mt-2"
+          >
             {error}
           </motion.p>
         )}
-        {requestCount >= 4 && !isLoading && (
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-yellow-500 text-sm mt-2">
-            One more question allowed this minute.
+        {rateLimitTimer && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center text-yellow-500 text-sm mt-2"
+          >
+            Too many requests. Please wait {rateLimitTimer} seconds.
+          </motion.p>
+        )}
+        {requestCount >= 4 && !isLoading && !error && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center text-yellow-500 text-sm mt-2"
+          >
+            One more request allowed this minute.
           </motion.p>
         )}
       </div>
-
-      {/* Quick Reply Buttons */}
       <div className="flex flex-wrap gap-2 mt-2 mb-4">
         {quickReplies[mode].map((reply) => (
           <motion.button
@@ -251,8 +425,6 @@ const Chatbot = ({ isFullPage = false }) => {
           </motion.button>
         ))}
       </div>
-
-      {/* Input Area */}
       <div className="flex mt-4">
         <input
           type="text"
@@ -260,14 +432,16 @@ const Chatbot = ({ isFullPage = false }) => {
             mode === 'general'
               ? 'Ask about finance...'
               : mode === 'loan_prediction'
-              ? 'Ask about loan default prediction or enter data (e.g., Age: 30, Income: 50000)...'
-              : 'Ask about credit risk or enter data (e.g., Age: 25, Income: 40000)...'
+              ? 'Enter loan data (e.g., Age: 30, Income: 50000...) or ask about predictions'
+              : mode === 'credit_risk'
+              ? 'Enter credit risk data (e.g., person_age: 25, person_income: 40000...) or ask about risks'
+              : 'Enter fraud data (e.g., Time: 100, Amount: 50.0) or ask about fraud'
           }
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
           className={`flex-1 p-3 ${
-            theme === 'light' ? 'bg-white border-gray-300 text-gray-500' : 'bg-gray-700 border-gray-600 text-gray-300'
+            error ? 'border-red-500' : theme === 'light' ? 'border-gray-300 text-gray-500' : 'border-gray-600 text-gray-300'
           } border rounded-l-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500`}
           disabled={isLoading}
         />
@@ -285,9 +459,7 @@ const Chatbot = ({ isFullPage = false }) => {
           <ChevronRight className="w-5 h-5" />
         </motion.button>
       </div>
-
-      {/* Clear Chat Button */}
-      {chatHistory.length > 0 && (
+      {chatHistory.length > 1 && (
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
