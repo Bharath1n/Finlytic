@@ -94,3 +94,4 @@ sqlalchemy[asyncio]==2.0.36
 asyncpg==0.30.0
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.8.0+cpu
+google-generative-ai==0.7.2
