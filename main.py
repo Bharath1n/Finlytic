@@ -32,7 +32,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://finlytic.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -40,11 +40,11 @@ app.add_middleware(
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
-    logger.error("❌ GEMINI_API_KEY not found in environment variables.")
+    logger.error("GEMINI_API_KEY not found in environment variables.")
     raise EnvironmentError("GEMINI_API_KEY is missing in the .env file.")
 
+# Set the API key as an environment variable (already done via load_dotenv)
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
-genai.configure(api_key=GEMINI_API_KEY)
 chat_model = genai.GenerativeModel(GEMINI_MODEL)
 
 MODEL_DIR = "backend/model"
