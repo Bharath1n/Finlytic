@@ -17,6 +17,7 @@ import logging
 import sqlite3
 import time
 import uvicorn
+from model_loader import load_from_drive
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -55,27 +56,15 @@ FRAUD_MODEL_PATH = os.path.join(MODEL_DIR, "lstm_fraud_model.pth")
 FRAUD_SCALER_PATH = os.path.join(MODEL_DIR, "fraud_scaler.pkl")
 
 try:
-    if not os.path.exists(MODEL_PATH):
-        raise FileNotFoundError(f"Model file not found at {MODEL_PATH}")
-    if not os.path.exists(SCALER_PATH):
-        raise FileNotFoundError(f"Scaler file not found at {SCALER_PATH}")
-    with open(MODEL_PATH, 'rb') as f:
-        model = pickle.load(f)
-    with open(SCALER_PATH, 'rb') as f:
-        scaler = pickle.load(f)
+    model = load_from_drive("loan_model.pkl")
+    scaler = load_from_drive("scaler.pkl")
 except Exception as e:
     logger.error(f"Error loading model/scaler: {e}", exc_info=True)
     raise ValueError(f"Failed to load model or scaler: {str(e)}")
 
 try:
-    if not os.path.exists(CREDIT_RISK_MODEL_PATH):
-        raise FileNotFoundError(f"Credit risk model file not found at {CREDIT_RISK_MODEL_PATH}")
-    if not os.path.exists(CREDIT_RISK_SCALER_PATH):
-        raise FileNotFoundError(f"Credit risk scaler file not found at {CREDIT_RISK_SCALER_PATH}")
-    with open(CREDIT_RISK_MODEL_PATH, 'rb') as f:
-        credit_risk_model = pickle.load(f)
-    with open(CREDIT_RISK_SCALER_PATH, 'rb') as f:
-        credit_risk_scaler = pickle.load(f)
+    credit_risk_model = load_from_drive("credit_risk_model.pkl")
+    credit_risk_scaler = load_from_drive("credit_risk_scaler.pkl")
 except Exception as e:
     logger.error(f"Error loading credit risk model/scaler: {e}", exc_info=True)
     raise ValueError(f"Failed to load credit risk model or scaler: {str(e)}")
@@ -95,13 +84,9 @@ class LSTMFraudClassifier(nn.Module):
 
 try:
     fraud_model = LSTMFraudClassifier(input_dim=30, hidden_dim=64, num_layers=2)
-    if os.path.exists(FRAUD_MODEL_PATH):
-        fraud_model.load_state_dict(torch.load(FRAUD_MODEL_PATH, map_location=torch.device('cpu')))
-        fraud_model.eval()
-    else:
-        raise FileNotFoundError(f"Fraud model not found at {FRAUD_MODEL_PATH}")
-    with open(FRAUD_SCALER_PATH, 'rb') as f:
-        fraud_scaler = pickle.load(f)
+    fraud_model.load_state_dict(load_from_drive("lstm_fraud_model.pth", is_torch=True))
+    fraud_model.eval()
+    fraud_scaler = load_from_drive("fraud_scaler.pkl")
 except Exception as e:
     logger.error(f"Error loading fraud model/scaler: {e}", exc_info=True)
     raise ValueError(f"Failed to load fraud model or scaler: {str(e)}")

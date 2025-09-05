@@ -9,7 +9,7 @@ CSV_FILE_IDS = {
     "creditcard.csv": "1lDx9r5H-6PtrqENttG6Gerr2V3VbNsk4",
     "finbert_labels.csv": "1HOLc0DFDg0VwNv0GOPj6cIuyItrazqnf",
     "loan_data.csv": "1EXZNwivA3gmTE9RHWpwHEgvX9yV3qNo5",
-    # Note: finbert_embeddings.npy is not a CSV, so it won't work with pd.read_csv
+    "finbert_embeddings.npy":"1Qq3VQDRvB8lhrQopb7kkB3XTha9q3sYT"
 }
 
 # Save the original pd.read_csv

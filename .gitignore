@@ -18,6 +18,7 @@ data/credit_risk_dataset.csv
 data/credit_risk_data_cleaned.csv
 data/credit_risk_data_encoded.csv
 data/*.csv
+backend/model/
 
 # Python cache files
 __pycache__/

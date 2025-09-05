@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import pickle
+from model_loader import load_from_drive
 
 # Categorical mappings for loan default
 CATEGORICAL_MAPPINGS = {
@@ -29,12 +30,12 @@ CATEGORICAL_MAPPINGS = {
 
 # Loading encoders for credit risk
 credit_risk_encoders = {}
+credit_risk_encoders = {}
 for col in ['person_home_ownership', 'loan_intent', 'loan_grade', 'cb_person_default_on_file']:
     try:
-        with open(f'backend/model/le_{col}.pkl', 'rb') as f:
-            credit_risk_encoders[col] = pickle.load(f)
-    except FileNotFoundError:
-        raise ValueError(f"Credit risk encoder for {col} not found in backend/model")
+        credit_risk_encoders[col] = load_from_drive(f"le_{col}.pkl")
+    except Exception as e:  # Broader catch for drive load errors
+        raise ValueError(f"Credit risk encoder for {col} not found: {str(e)}")
 
 def preprocess_input(data, scaler, model_type='loan_default'):
     if model_type == 'loan_default':
