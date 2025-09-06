@@ -107,11 +107,7 @@ def load_fraud_model():
             logger.error(f"Error loading fraud model or scaler: {e}")
             raise HTTPException(status_code=500, detail="Failed to load fraud model")
         
-class ChatInput(BaseModel):
-    session_id: str
-    user_id: str | None
-    mode: str
-    message: str
+
 
 class LoanInput(BaseModel):
     Age: int
@@ -248,8 +244,63 @@ class FraudInput(BaseModel):
     V28: float
     Amount: float
 
+class ChatInput(BaseModel):
+    session_id: str
+    user_id: str | None
+    mode: str
+    message: str
+
+@app.post("/predict/")
+async def predict_loan_default(input_data: LoanInput):
+    global loan_model, loan_scaler
+    load_loan_model()  # Lazy load only when needed
+    if loan_scaler is None or loan_model is None:
+        raise HTTPException(status_code=500, detail="Model or scaler not loaded properly")
+    try:
+        # Preprocess input data
+        processed_input = preprocess_input(input_data.dict(), loan_scaler, model_type='loan_default')
+        # Predict using RandomForest model
+        prediction = loan_model.predict(processed_input)[0]
+        probability = loan_model.predict_proba(processed_input)[0][1]
+        return {"prediction": int(prediction), "probability": float(probability)}
+    except Exception as e:
+        logger.error(f"Prediction error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+    finally:
+        # Optional: Clear memory after use
+        del loan_model, loan_scaler
+        loan_model = None
+        loan_scaler = None
+        import gc
+        gc.collect()
+
+@app.post("/credit_risk_predict/")
+async def predict_credit_risk(input_data: CreditRiskInput):
+    global credit_risk_model, credit_risk_scaler
+    load_credit_risk_model()  # Lazy load only when needed
+    if credit_risk_scaler is None or credit_risk_model is None:
+        raise HTTPException(status_code=500, detail="Model or scaler not loaded properly")
+    try:
+        # Preprocess input data
+        processed_input = preprocess_input(input_data.dict(), credit_risk_scaler, model_type='credit_risk')
+        # Predict using RandomForest model
+        prediction = credit_risk_model.predict([processed_input])[0]
+        probability = credit_risk_model.predict_proba([processed_input])[0][1]
+        return {"prediction": int(prediction), "probability": float(probability)}
+    except Exception as e:
+        logger.error(f"Credit risk prediction error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Credit risk prediction failed: {str(e)}")
+    finally:
+        # Optional: Clear memory after use
+        del credit_risk_model, credit_risk_scaler
+        credit_risk_model = None
+        credit_risk_scaler = None
+        import gc
+        gc.collect()
+
 @app.post("/fraud/")
 async def detect_fraud(input_data: FraudInput):
+    global fraud_model, fraud_scaler
     load_fraud_model()  # Lazy load only when needed
     if fraud_scaler is None or fraud_model is None:
         raise HTTPException(status_code=500, detail="Model or scaler not loaded properly")
@@ -258,7 +309,7 @@ async def detect_fraud(input_data: FraudInput):
         scaled_input = fraud_scaler.transform([list(input_data.dict().values())])
         input_tensor = torch.FloatTensor(scaled_input).unsqueeze(1)  # [1, 1, 29]
         
-        # Use the loaded state dict directly (assuming it's a state dict, not a model instance)
+        # Use the loaded state dict directly
         class LSTMFraudClassifier(nn.Module):
             def __init__(self, input_dim, hidden_dim, num_layers):
                 super(LSTMFraudClassifier, self).__init__()
@@ -288,58 +339,9 @@ async def detect_fraud(input_data: FraudInput):
         raise HTTPException(status_code=500, detail=f"Fraud detection failed: {str(e)}")
     finally:
         # Optional: Clear memory after use
-        global fraud_model, fraud_scaler
         del fraud_model, fraud_scaler
         fraud_model = None
         fraud_scaler = None
-        import gc
-        gc.collect()
-
-@app.post("/predict/")
-async def predict_loan_default(input_data: LoanInput):
-    load_loan_model()  # Lazy load only when needed
-    if loan_scaler is None or loan_model is None:
-        raise HTTPException(status_code=500, detail="Model or scaler not loaded properly")
-    try:
-        # Preprocess input data
-        processed_input = preprocess_input(input_data.dict(), loan_scaler, model_type='loan_default')
-        # Predict using RandomForest model
-        prediction = loan_model.predict(processed_input)[0]
-        probability = loan_model.predict_proba(processed_input)[0][1]
-        return {"prediction": int(prediction), "probability": float(probability)}
-    except Exception as e:
-        logger.error(f"Prediction error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
-    finally:
-        # Optional: Clear memory after use (manual cleanup)
-        global loan_model, loan_scaler
-        del loan_model, loan_scaler
-        loan_model = None
-        loan_scaler = None
-        import gc
-        gc.collect()
-
-@app.post("/credit_risk_predict/")
-async def predict_credit_risk(input_data: CreditRiskInput):
-    load_credit_risk_model()  # Lazy load only when needed
-    if credit_risk_scaler is None or credit_risk_model is None:
-        raise HTTPException(status_code=500, detail="Model or scaler not loaded properly")
-    try:
-        # Preprocess input data
-        processed_input = preprocess_input(input_data.dict(), credit_risk_scaler, model_type='credit_risk')
-        # Predict using RandomForest model
-        prediction = credit_risk_model.predict([processed_input])[0]
-        probability = credit_risk_model.predict_proba([processed_input])[0][1]
-        return {"prediction": int(prediction), "probability": float(probability)}
-    except Exception as e:
-        logger.error(f"Credit risk prediction error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Credit risk prediction failed: {str(e)}")
-    finally:
-        # Optional: Clear memory after use
-        global credit_risk_model, credit_risk_scaler
-        del credit_risk_model, credit_risk_scaler
-        credit_risk_model = None
-        credit_risk_scaler = None
         import gc
         gc.collect()
 
