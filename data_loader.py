@@ -1,6 +1,6 @@
 import pandas as pd
 import requests
-from io import StringIO
+from io import StringIO, BytesIO
 from bs4 import BeautifulSoup
 import re
 # Map filenames (without path) to Google Drive file IDs
@@ -68,11 +68,14 @@ def read_csv(filepath_or_buffer, *args, **kwargs):
         if response.status_code != 200:
             raise ValueError(f"Failed to download {filename}: {response.status_code} - {response.text}")
 
-        # For CSV, read content as text and use StringIO
-        content = ""
-        for chunk in response.iter_content(chunk_size=32768, decode_unicode=True):
+        # Use BytesIO to accumulate binary chunks
+        file_content = BytesIO()
+        for chunk in response.iter_content(chunk_size=32768):
             if chunk:
-                content += chunk
+                file_content.write(chunk)
+        file_content.seek(0)
+        # Decode the entire content to string and pass to StringIO
+        content = file_content.getvalue().decode('utf-8')
         return _original_read_csv(StringIO(content), *args, **kwargs)
 
     # Otherwise, load normally

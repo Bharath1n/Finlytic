@@ -18,6 +18,7 @@ import sqlite3
 import time
 import uvicorn
 from model_loader import load_from_drive
+import data_loader
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
