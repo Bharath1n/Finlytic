@@ -1,8 +1,8 @@
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import React, { useState, lazy, Suspense } from 'react';
-import { Menu, X, ChevronRight } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ThemeProvider, ThemeToggle, useTheme } from './components/ThemeContext';
+import { ThemeProvider, useTheme } from './components/ThemeContext';
+import { motion, useScroll, useTransform, useSpring } from "framer-motion";
+import { Menu, X, ChevronRight, CreditCard, Shield, Bot, TrendingUp, Zap, Star, ArrowRight, Play, Users, Award, DollarSign, Github, Twitter, Linkedin, Mail } from "lucide-react";
 
 const Home = lazy(() => import('./components/Home'));
 const PredictionForm = lazy(() => import('./components/PredictionForm'));
@@ -23,142 +23,134 @@ const FloatingChatbot = () => {
 };
 
 const AppContent = () => {
-  const { theme } = useTheme();
+  const [theme, setTheme] = useState('light');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+  const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light');
+    const FloatingElements = () => (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {[...Array(15)].map((_, i) => (
+        <motion.div
+          key={i}
+          className={`absolute w-2 h-2 ${theme === 'light' ? 'bg-blue-200/30' : 'bg-blue-400/20'} rounded-full`}
+          initial={{
+            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
+            y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1000),
+          }}
+          animate={{
+            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
+            y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1000),
+          }}
+          transition={{
+            duration: Math.random() * 10 + 20,
+            repeat: Infinity,
+            repeatType: "reverse",
+            ease: "linear",
+          }}
+        />
+      ))}
+    </div>
+  );
 
-  const menuVariants = {
-    closed: { x: '100%', opacity: 0 },
-    open: { x: 0, opacity: 1 },
-  };
+  const GradientOrb = ({ delay = 0, scale = 1, color = "blue" }) => (
+    <motion.div
+      className={`absolute w-96 h-96 rounded-full opacity-20 blur-3xl ${
+        color === "blue" ? "bg-blue-500" : 
+        color === "purple" ? "bg-purple-500" : 
+        "bg-pink-500"
+      }`}
+      animate={{
+        scale: [scale, scale * 1.2, scale],
+        opacity: [0.1, 0.3, 0.1],
+      }}
+      transition={{
+        duration: 8,
+        repeat: Infinity,
+        delay,
+        ease: "easeInOut",
+      }}
+    />
+  );
+
 
   return (
     <Router>
-      <div className={`min-h-screen font-mono ${theme === 'light' ? 'bg-gradient-to-br from-indigo-50 to-purple-50' : 'bg-gradient-to-br from-gray-900 to-gray-800'}`}>
-        <nav className={`fixed top-0 left-0 w-full z-50 py-6 px-8 ${theme === 'light' ? 'bg-white/95' : 'bg-gray-800/95'} backdrop-blur-lg rounded-b-2xl shadow-lg hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-shadow`}>
-          <div className="max-w-7xl mx-auto flex justify-between items-center">
-            <Link to="/" aria-label="Home page" className={`text-xl font-bold ${theme === 'light' ? 'text-blue-500' : 'text-blue-400'}`}>
-              FIN-LYTICS
-            </Link>
-            <div className="hidden md:flex items-center space-x-8">
-              <Link to="/" className={`text-lg flex items-center ${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition`}>
-                HOME <ChevronRight className="ml-1 w-4 h-4" />
-              </Link>
-              <Link to="/dashboard" className={`text-lg flex items-center ${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition`}>
-                DASHBOARDS <ChevronRight className="ml-1 w-4 h-4" />
-              </Link>
-              <Link to="/loan" className={`text-lg flex items-center ${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition`}>
-                LOAN PREDICTIONS <ChevronRight className="ml-1 w-4 h-4" />
-              </Link>
-              <Link to="/credit-risk" className={`text-lg flex items-center ${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition`}>
-                CREDIT RISKS <ChevronRight className="ml-1 w-4 h-4" />
-              </Link>
-              <Link to="/chatbot" className={`text-lg flex items-center ${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition`}>
-                CHATBOT <ChevronRight className="ml-1 w-4 h-4" />
-              </Link>
-              {/* <Link to="/fraud-detection" className={`text-lg flex items-center ${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition`}>
-                FRAUD DETECTION <ChevronRight className="ml-1 w-4 h-4" />
-              </Link> */}
-              <Link to="/info" className={`text-lg flex items-center ${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition`}>
-                LEARN MORE <ChevronRight className="ml-1 w-4 h-4" />
-              </Link>
-              <ThemeToggle />
-            </div>
-            <button
-              aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
-              aria-expanded={isMenuOpen}
-              className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} md:hidden`}
-              onClick={toggleMenu}
+    <div className={`min-h-screen font-mono relative overflow-hidden ${theme === 'light' ? 'bg-gradient-to-br from-gray-50 via-white to-blue-50 text-black' : 'bg-gradient-to-br from-gray-900 via-black to-blue-900 text-white'}`}>
+          <FloatingElements />
+          
+          {/* Gradient Orbs */}
+          <GradientOrb delay={0} scale={1} color="blue" />
+          <GradientOrb delay={2} scale={0.8} color="purple" />
+          <GradientOrb delay={4} scale={0.6} color="pink" />
+    
+          {/* Simplified Navigation */}
+          <nav className="relative z-50 p-6">
+            <motion.div 
+              className={`backdrop-blur-xl ${theme === 'light' ? 'bg-white/20 border-white/20' : 'bg-black/20 border-white/10'} border rounded-2xl p-4 max-w-7xl mx-auto flex justify-between items-center`}
+              initial={{ y: -100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
             >
-              {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
-            </button>
-          </div>
-        </nav>
-
-        <AnimatePresence>
-          {isMenuOpen && (
-            <motion.div
-              initial="closed"
-              animate="open"
-              exit="closed"
-              variants={menuVariants}
-              transition={{ duration: 0.3 }}
-              className={`fixed top-0 right-0 h-full w-3/4 max-w-xs z-60 ${theme === 'light' ? 'bg-white' : 'bg-gray-800'} p-8 flex flex-col space-y-6 shadow-lg md:hidden`}
-            >
-              <div className="flex justify-between items-center mb-6">
-                <span className={`text-xl font-bold ${theme === 'light' ? 'text-blue-500' : 'text-blue-400'}`}>FIN-LYTIC</span>
-                <button onClick={toggleMenu} className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-300'}`}>
-                  <X size={28} />
-                </button>
+              <motion.div 
+                className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent"
+                whileHover={{ scale: 1.05 }}
+              >
+                FIN-LYTIC
+              </motion.div>
+              <div className="hidden md:flex space-x-8 items-center">
+                {['Dashboard','Loan', 'Credit-Risk', 'Chatbot'].map((item, i) => (
+                  <motion.a
+                    key={item}
+                    href={`${item.toLowerCase()}`}
+                    className={`${theme === 'light' ? 'text-gray-700 hover:text-blue-600' : 'text-gray-300 hover:text-blue-400'} transition-colors relative group`}
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 + 0.5 }}
+                    whileHover={{ y: -2 }}
+                  >
+                    {item}
+                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-400 to-purple-600 group-hover:w-full transition-all duration-300"></span>
+                  </motion.a>
+                ))}
+                <motion.button
+                  onClick={toggleTheme}
+                  className={`p-2 rounded-full ${theme === 'light' ? 'bg-gray-200 text-gray-800' : 'bg-gray-800 text-gray-200'} hover:scale-110 transition-all`}
+                  whileHover={{ rotate: 180 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  {theme === 'light' ? '🌙' : '☀️'}
+                </motion.button>
               </div>
-              <Link
-                to="/"
-                className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition text-lg flex items-center`}
-                onClick={toggleMenu}
+              
+              {/* Mobile menu button */}
+              <button
+                className="md:hidden"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
-                HOME <ChevronRight className="ml-1 w-4 h-4" />
-              </Link>
-              <Link
-                to="/dashboard"
-                className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition text-lg flex items-center`}
-                onClick={toggleMenu}
-              >
-                DASHBOARD <ChevronRight className="ml-1 w-4 h-4" />
-              </Link>
-              <Link
-                to="/loan"
-                className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition text-lg flex items-center`}
-                onClick={toggleMenu}
-              >
-                LOAN PREDICTION <ChevronRight className="ml-1 w-4 h-4" />
-              </Link>
-              <Link
-                to="/credit-risk"
-                className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition text-lg flex items-center`}
-                onClick={toggleMenu}
-              >
-                CREDIT RISK <ChevronRight className="ml-1 w-4 h-4" />
-              </Link>
-              <Link
-                to="/chatbot"
-                className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition text-lg flex items-center`}
-                onClick={toggleMenu}
-              >
-                CHATBOT <ChevronRight className="ml-1 w-4 h-4" />
-              </Link>
-              {/* <Link
-                to="/fraud-detection"
-                className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition text-lg flex items-center`}
-                onClick={toggleMenu}
-              >
-                FRAUD DETECTION <ChevronRight className="ml-1 w-4 h-4" />
-              </Link> */}
-              <Link
-                to="/info"
-                className={`${theme === 'light' ? 'text-gray-500' : 'text-gray-300'} hover:text-blue-500 transition text-lg flex items-center`}
-                onClick={toggleMenu}
-              >
-                LEARN MORE <ChevronRight className="ml-1 w-4 h-4" />
-              </Link>
-              <div className="pt-4">
-                <ThemeToggle />
-              </div>
+                {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
             </motion.div>
-          )}
-        </AnimatePresence>
-
-        {isMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.5 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 bg-black z-50 md:hidden"
-            onClick={toggleMenu}
-          />
-        )}
-
-        <div className="max-w-7xl mx-auto px-4 py-8 mt-11">
+            
+            {/* Mobile menu */}
+            {isMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className={`md:hidden mt-4 ${theme === 'light' ? 'bg-white/90' : 'bg-black/90'} backdrop-blur-xl border ${theme === 'light' ? 'border-white/20' : 'border-white/10'} rounded-2xl p-4`}
+              >
+                {['Features', 'Solutions', 'Demo', 'About'].map((item) => (
+                  <a
+                    key={item}
+                    href={`#${item.toLowerCase()}`}
+                    className={`block py-2 ${theme === 'light' ? 'text-gray-700 hover:text-blue-600' : 'text-gray-300 hover:text-blue-400'} transition-colors`}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {item}
+                  </a>
+                ))}
+              </motion.div>
+            )}
+          </nav>
           <Suspense fallback={<div className="text-center text-xl">Loading...</div>}>
             <Routes>
               <Route path="/" element={<Home />} />
@@ -170,17 +162,159 @@ const AppContent = () => {
               <Route path="/chatbot" element={<Chatbot isFullPage={true} />} />
             </Routes>
           </Suspense>
-        </div>
-        <FloatingChatbot />
-        <footer className={`py-12 px-8 text-center font-mono ${theme === 'light' ? 'bg-black text-white' : 'bg-gray-950 text-gray-300'}`}>
-          <p className="text-lg">© 2025 Fin-Lytic. All rights reserved.</p>
-          <div className="mt-4 space-x-8">
-            <Link to="/info" className="hover:text-blue-500 text-lg">About</Link>
-            <Link to="/contact" className="hover:text-blue-500 text-lg">Contact</Link>
-            <Link to="/privacy" className="hover:text-blue-500 text-lg">Privacy</Link>
+          <footer id="about" className={`${theme === 'light' ? 'bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900' : 'bg-gradient-to-br from-black via-gray-900 to-blue-900'} text-white relative overflow-hidden`}>
+        {/* Footer Content */}
+        <div className="relative z-10 px-8 pt-20 pb-8">
+          <div className="max-w-7xl mx-auto">
+            {/* Main Footer Content */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+              {/* Brand Section */}
+              <div className="col-span-1 md:col-span-2">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6 }}
+                  viewport={{ once: true }}
+                >
+                  <h3 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-4">
+                    FIN-LYTIC
+                  </h3>
+                  <p className="text-gray-300 text-lg leading-relaxed mb-6 max-w-md">
+                    Revolutionizing financial intelligence with AI-powered predictions, analytics, and insights. Your trusted partner in financial decision making.
+                  </p>
+                  <div className="flex space-x-4">
+                    {[
+                      { icon: Github, href: "#" },
+                      { icon: Twitter, href: "#" },
+                      { icon: Linkedin, href: "#" },
+                      { icon: Mail, href: "mailto:hello@fin-lytic.com" }
+                    ].map((social, i) => (
+                      <motion.a
+                        key={i}
+                        href={social.href}
+                        whileHover={{ scale: 1.1, y: -2 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="w-12 h-12 bg-white/10 hover:bg-blue-500 rounded-full flex items-center justify-center transition-all duration-300 backdrop-blur-sm border border-white/20"
+                      >
+                        <social.icon className="w-5 h-5" />
+                      </motion.a>
+                    ))}
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Quick Links */}
+              <div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.1 }}
+                  viewport={{ once: true }}
+                >
+                  <h4 className="text-xl font-semibold mb-6 text-blue-300">Quick Links</h4>
+                  <ul className="space-y-3">
+                    {['Dashboard', 'Loan Predictions', 'Credit Risk', 'AI Assistant', 'Analytics'].map((item, i) => (
+                      <li key={i}>
+                        <motion.a
+                          href="#"
+                          className="text-gray-400 hover:text-white transition-colors duration-300 flex items-center group"
+                          whileHover={{ x: 5 }}
+                        >
+                          <ArrowRight className="w-3 h-3 mr-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          {item}
+                        </motion.a>
+                      </li>
+                    ))}
+                  </ul>
+                </motion.div>
+              </div>
+            </div>
+
+            {/* Newsletter Signup */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              viewport={{ once: true }}
+              className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm border border-white/10 rounded-2xl p-8 mb-12"
+            >
+              <div className="text-center max-w-2xl mx-auto">
+                <h4 className="text-2xl font-bold mb-4">Stay Updated</h4>
+                <p className="text-gray-300 mb-6">Get the latest insights and updates from FIN-LYTIC delivered to your inbox.</p>
+                <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+                  <input
+                    type="email"
+                    placeholder="Enter your email"
+                    className="flex-1 px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
+                  />
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-purple-600 transition-all duration-300"
+                  >
+                    Subscribe
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Bottom Bar */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              viewport={{ once: true }}
+              className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center"
+            >
+              <div className="text-gray-400 text-center md:text-left mb-4 md:mb-0">
+                <p>&copy; 2025 FIN-LYTIC. All rights reserved.</p>
+              </div>
+              <div className="flex space-x-6 text-sm">
+                {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map((item, i) => (
+                  <motion.a
+                    key={i}
+                    href="#"
+                    className="text-gray-400 hover:text-white transition-colors duration-300"
+                    whileHover={{ y: -1 }}
+                  >
+                    {item}
+                  </motion.a>
+                ))}
+              </div>
+            </motion.div>
           </div>
-        </footer>
-      </div>
+        </div>
+
+        {/* Footer Background Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <motion.div
+            className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl"
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.1, 0.2, 0.1],
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+          <motion.div
+            className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl"
+            animate={{
+              scale: [1.2, 1, 1.2],
+              opacity: [0.1, 0.2, 0.1],
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 4,
+            }}
+          />
+        </div>
+      </footer>
+    </div>
     </Router>
   );
 };

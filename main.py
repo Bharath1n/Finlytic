@@ -19,6 +19,7 @@ import time
 import uvicorn
 from model_loader import load_from_drive
 import data_loader
+import model_loader
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -275,7 +276,7 @@ async def predict_loan_default(input_data: LoanInput):
         import gc
         gc.collect()
 
-@app.post("/credit_risk_predict/")
+@app.post("/credit_risk/")
 async def predict_credit_risk(input_data: CreditRiskInput):
     global credit_risk_model, credit_risk_scaler
     load_credit_risk_model()  # Lazy load only when needed
@@ -287,7 +288,11 @@ async def predict_credit_risk(input_data: CreditRiskInput):
         # Predict using RandomForest model
         prediction = credit_risk_model.predict([processed_input])[0]
         probability = credit_risk_model.predict_proba([processed_input])[0][1]
-        return {"prediction": int(prediction), "probability": float(probability)}
+        risk_category = "Low" if probability < 0.3 else "Medium" if probability < 0.7 else "High"
+        return {
+            "credit_risk_prediction": risk_category,
+            "credit_risk_probability": float(probability)
+        }
     except Exception as e:
         logger.error(f"Credit risk prediction error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Credit risk prediction failed: {str(e)}")
@@ -497,15 +502,29 @@ async def delete_chat_history(session_id: str, mode: str):
 @app.get("/stats/")
 async def stats():
     try:
-        # Use the patched pd.read_csv to load from Google Drive via data_loader.py
-        df = pd.read_csv("loan_data.csv")  # Filename matches CSV_FILE_IDS key
+        df = pd.read_csv("loan_data.csv")
         stats = {
             "averageAge": float(df["Age"].mean()),
             "averageIncome": float(df["Income"].mean()),
             "averageLoanAmount": float(df["LoanAmount"].mean()),
             "defaultRate": float(df["Default"].mean() * 100),
             "defaultDistribution": [int((df["Default"] == 0).sum()), int((df["Default"] == 1).sum())],
+            "educationDistribution": df["Education"].value_counts().to_dict(),  # Raw counts
+            "employmentTypeDistribution": df["EmploymentType"].value_counts().to_dict(),
+            "maritalStatusDistribution": df["MaritalStatus"].value_counts().to_dict(),
+            "loanPurposeDistribution": df["LoanPurpose"].value_counts().to_dict(),
         }
+        # Optionally decode using LoanInput valid values
+        education_map = {0: "high school", 1: "bachelor", 2: "master's", 3: "phd"}
+        employment_map = {0: "full-time", 1: "part-time", 2: "self-employed", 3: "unemployed"}
+        marital_map = {0: "single", 1: "married", 2: "divorced"}
+        loan_purpose_map = {0: "auto", 1: "business", 2: "education", 3: "home", 4: "other"}
+
+        stats["educationDistribution"] = {education_map[k]: v for k, v in stats["educationDistribution"].items()}
+        stats["employmentTypeDistribution"] = {employment_map[k]: v for k, v in stats["employmentTypeDistribution"].items()}
+        stats["maritalStatusDistribution"] = {marital_map[k]: v for k, v in stats["maritalStatusDistribution"].items()}
+        stats["loanPurposeDistribution"] = {loan_purpose_map[k]: v for k, v in stats["loanPurposeDistribution"].items()}
+
         return stats
     except Exception as e:
         logger.error(f"Error in get_stats: {e}", exc_info=True)

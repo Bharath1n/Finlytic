@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, X, Trash2, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Menu, MessageSquare, X, Trash2, ChevronRight, AlertTriangle } from 'lucide-react';
 import { useTheme } from './ThemeContext';
 import ReactMarkdown from 'react-markdown';
 import { v4 as uuidv4 } from 'uuid';
@@ -25,7 +25,8 @@ const nonFraudFeatures = {
 };
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const Chatbot = ({ isFullPage = false }) => {
-  const { theme } = useTheme();
+  const [theme, setTheme] = useState('light');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(isFullPage);
   const [message, setMessage] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
@@ -36,6 +37,7 @@ const Chatbot = ({ isFullPage = false }) => {
   const [retryCount, setRetryCount] = useState(0);
   const [sessionId] = useState(uuidv4());
   const [rateLimitTimer, setRateLimitTimer] = useState(null);
+  const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light');
 
   useEffect(() => {
     localStorage.setItem('sessionId', sessionId);
@@ -49,6 +51,51 @@ const Chatbot = ({ isFullPage = false }) => {
     };
     fetchChatHistory();
   }, [mode, sessionId]);
+
+  const FloatingElements = () => (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {[...Array(15)].map((_, i) => (
+        <motion.div
+          key={i}
+          className={`absolute w-2 h-2 ${theme === 'light' ? 'bg-blue-200/30' : 'bg-blue-400/20'} rounded-full`}
+          initial={{
+            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
+            y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1000),
+          }}
+          animate={{
+            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
+            y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1000),
+          }}
+          transition={{
+            duration: Math.random() * 10 + 20,
+            repeat: Infinity,
+            repeatType: "reverse",
+            ease: "linear",
+          }}
+        />
+      ))}
+    </div>
+  );
+
+  const GradientOrb = ({ delay = 0, scale = 1, color = "blue" }) => (
+    <motion.div
+      className={`absolute w-96 h-96 rounded-full opacity-20 blur-3xl ${
+        color === "blue" ? "bg-blue-500" : 
+        color === "purple" ? "bg-purple-500" : 
+        "bg-pink-500"
+      }`}
+      animate={{
+        scale: [scale, scale * 1.2, scale],
+        opacity: [0.1, 0.3, 0.1],
+      }}
+      transition={{
+        duration: 8,
+        repeat: Infinity,
+        delay,
+        ease: "easeInOut",
+      }}
+    />
+  );
 
   const welcomeMessages = {
     general: '**Welcome to General Mode!** Ask about budgeting, credit scores, or financial tips. Try: "What is a credit score?"',
@@ -304,53 +351,69 @@ const Chatbot = ({ isFullPage = false }) => {
       sendMessage();
     }
   };
-
   const chatWindow = (
     <motion.div
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 50 }}
       transition={{ duration: 0.3 }}
-      className={`${isFullPage ? 'w-full max-w-4xl mx-auto h-[75vh] flex flex-col mt-12' : 'fixed bottom-24 right-8 w-96 max-h-[80vh]'} ${
-        theme === 'light' ? 'bg-white text-gray-500' : 'bg-gray-800 text-gray-300'
-      } rounded-2xl shadow-xl p-6 flex flex-col ${isFullPage ? '' : 'z-50'}`}
+      className={`
+        ${isFullPage ? 'max-w-4xl mx-auto h-[75vh] flex flex-col mt-12' : 'fixed bottom-24 right-8 w-96 max-h-[80vh]'}
+        ${theme === 'light' 
+          ? 'bg-white/90 text-gray-700 border border-gray-200 shadow-2xl' 
+          : 'bg-black/80 text-gray-300 border border-gray-700 shadow-black/40'}
+        rounded-3xl p-6 flex flex-col z-50 backdrop-blur-md
+      `}
+      style={{ backdropFilter: 'blur(12px)' }}
     >
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-bold text-blue-500 flex items-center">
-          <MessageSquare className="mr-2 w-5 h-5" /> AI Financial Assistant
+        <h3 className="text-2xl font-extrabold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent flex items-center">
+          <MessageSquare className="mr-2 w-6 h-6" />
+          AI Financial Assistant
         </h3>
         {!isFullPage && (
-          <button
+          <motion.button
             onClick={toggleChat}
-            className={`${theme === 'light' ? 'text-gray-500 hover:text-red-500' : 'text-gray-300 hover:text-red-600'}`}
+            whileHover={{ scale: 1.2 }}
+            whileTap={{ scale: 0.9 }}
+            initial={{ opacity: 0.7 }}
+            whileFocus={{ opacity: 1 }}
+            className="text-gray-500 hover:text-red-500 focus:outline-none"
+            aria-label="Close chat"
           >
             <X className="w-6 h-6" />
-          </button>
+          </motion.button>
         )}
       </div>
-      <div className="flex justify-center mb-4 space-x-2 flex-wrap">
+
+      <div className={`flex justify-center mb-5 flex-wrap gap-2`}>
         {['general', 'loan_prediction', 'credit_risk', 'fraud_detection'].map((m) => (
           <motion.button
             key={m}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => handleModeChange(m)}
-            className={`px-3 py-1 rounded-full text-sm font-semibold transition m-1 ${
-              mode === m
-                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                : theme === 'light'
+            className={`
+              text-sm font-semibold rounded-full px-4 py-1
+              transition-colors duration-300
+              ${mode === m ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' :
+                theme === 'light'
                 ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-            }`}
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}
+            `}
           >
             {m === 'general' ? 'General' : m === 'loan_prediction' ? 'Loan Prediction' : m === 'credit_risk' ? 'Credit Risk' : 'Fraud Detection'}
           </motion.button>
         ))}
       </div>
+
       <div
-        className={`flex-1 ${theme === 'light' ? 'bg-gray-100' : 'bg-gray-700'} rounded-xl p-4 overflow-y-auto ${
-          isFullPage ? 'max-h-[60vh]' : 'max-h-[50vh]'
-        }`}
+        className={`
+          flex-1 overflow-y-auto rounded-2xl p-4
+          ${theme === 'light' ? 'bg-white/60' : 'bg-black/40'}
+          scrollbar-thin scrollbar-thumb-blue-400 scrollbar-track-transparent
+          ${isFullPage ? 'max-h-[60vh]' : 'max-h-[50vh]'}
+        `}
       >
         {chatHistory.map((msg, idx) => (
           <motion.div
@@ -361,13 +424,15 @@ const Chatbot = ({ isFullPage = false }) => {
             className={`mb-3 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}
           >
             <span
-              className={`inline-block p-3 rounded-xl ${
-                msg.role === 'user'
-                  ? 'bg-blue-500 text-white'
+              className={`
+                inline-block p-3 rounded-2xl max-w-[80%]
+                ${msg.role === 'user'
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
                   : theme === 'light'
-                  ? 'bg-white text-gray-500'
-                  : 'bg-gray-600 text-white'
-              } max-w-[80%]`}
+                  ? 'bg-white shadow-inner text-gray-700'
+                  : 'bg-gray-800 text-gray-300 shadow-inner'}
+              `}
+              style={{ whiteSpace: 'pre-wrap' }}
             >
               {msg.role === 'assistant' ? <ReactMarkdown>{msg.content}</ReactMarkdown> : msg.content}
             </span>
@@ -377,7 +442,7 @@ const Chatbot = ({ isFullPage = false }) => {
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center text-gray-500 text-sm"
+            className={`text-center ${theme === 'light' ? 'text-gray-600' : 'text-gray-300'} text-sm`}
           >
             Typing...
           </motion.p>
@@ -395,7 +460,7 @@ const Chatbot = ({ isFullPage = false }) => {
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center text-yellow-500 text-sm mt-2"
+            className="text-center text-yellow-400 text-sm mt-2"
           >
             Too many requests. Please wait {rateLimitTimer} seconds.
           </motion.p>
@@ -404,27 +469,31 @@ const Chatbot = ({ isFullPage = false }) => {
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center text-yellow-500 text-sm mt-2"
+            className="text-center text-yellow-400 text-sm mt-2"
           >
             One more request allowed this minute.
           </motion.p>
         )}
       </div>
-      <div className="flex flex-wrap gap-2 mt-2 mb-4">
+
+      <div className="flex flex-wrap gap-2 mt-4 mb-4 justify-center">
         {quickReplies[mode].map((reply) => (
           <motion.button
             key={reply}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => handleQuickReply(reply)}
-            className={`px-2 py-1 text-xs rounded-full ${
-              theme === 'light' ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-            }`}
+            className={`
+              px-3 py-1 rounded-full text-xs font-medium
+              ${theme === 'light' ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}
+              shadow
+            `}
           >
             {reply}
           </motion.button>
         ))}
       </div>
+
       <div className="flex mt-4">
         <input
           type="text"
@@ -432,43 +501,56 @@ const Chatbot = ({ isFullPage = false }) => {
             mode === 'general'
               ? 'Ask about finance...'
               : mode === 'loan_prediction'
-              ? 'Enter loan data (e.g., Age: 30, Income: 50000...) or ask about predictions'
+              ? 'Enter loan data or ask about predictions'
               : mode === 'credit_risk'
-              ? 'Enter credit risk data (e.g., person_age: 25, person_income: 40000...) or ask about risks'
-              : 'Enter fraud data (e.g., Time: 100, Amount: 50.0) or ask about fraud'
+              ? 'Enter credit risk data or ask about risks'
+              : 'Enter fraud data or ask about fraud'
           }
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-          className={`flex-1 p-3 ${
-            error ? 'border-red-500' : theme === 'light' ? 'border-gray-300 text-gray-500' : 'border-gray-600 text-gray-300'
-          } border rounded-l-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500`}
           disabled={isLoading}
+          className={`
+            flex-1 p-3 rounded-l-3xl border
+            ${error ? 'border-red-500' : theme === 'light' ? 'border-gray-300 text-gray-700' : 'border-gray-600 text-gray-300'}
+            focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white/80 dark:bg-black/70
+            placeholder-gray-400 placeholder-opacity-70
+          `}
+          style={{ backdropFilter: 'blur(10px)' }}
         />
         <motion.button
           whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 1 }}
+          whileTap={{ scale: 0.95 }}
           onClick={sendMessage}
-          className={`p-3 bg-gradient-to-r ${
-            theme === 'light' ? 'from-blue-500 to-blue-600' : 'from-blue-600 to-blue-700'
-          } text-white rounded-r-full ${
-            theme === 'light' ? 'hover:from-blue-600 hover:to-blue-700' : 'hover:from-blue-700 hover:to-blue-800'
-          } transition disabled:bg-gray-500`}
           disabled={isLoading}
+          className={`
+            p-3 rounded-r-3xl text-white
+            bg-gradient-to-r from-purple-600 to-pink-600
+            hover:from-purple-700 hover:to-pink-700
+            disabled:bg-gray-500 disabled:cursor-not-allowed
+            transition-colors duration-300
+          `}
+          aria-label="Send message"
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-6 h-6" />
         </motion.button>
       </div>
+
       {chatHistory.length > 1 && (
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={clearChat}
-          className={`mt-2 p-2 ${
-            theme === 'light' ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-          } rounded-full text-sm flex items-center justify-center`}
+          className={`
+            mt-4 p-2 rounded-full 
+            ${theme === 'light' ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}
+            flex items-center justify-center text-sm font-semibold shadow-md
+            transition-colors duration-300
+          `}
+          aria-label="Clear chat"
         >
-          <Trash2 className="w-4 h-4 mr-1" /> Clear Chat
+          <Trash2 className="w-4 h-4 mr-1" />
+          Clear Chat
         </motion.button>
       )}
     </motion.div>
@@ -476,16 +558,18 @@ const Chatbot = ({ isFullPage = false }) => {
 
   return (
     <>
+    
       {!isFullPage && (
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={toggleChat}
-          className={`fixed bottom-8 right-8 p-4 bg-gradient-to-r ${
-            theme === 'light' ? 'from-blue-500 to-blue-600' : 'from-blue-600 to-blue-700'
-          } text-white rounded-full shadow-lg ${
-            theme === 'light' ? 'hover:from-blue-600 hover:to-blue-700' : 'hover:from-blue-700 hover:to-blue-800'
-          } transition z-50`}
+          className={`
+            fixed bottom-8 right-8 p-4 rounded-full shadow-lg z-50
+            bg-gradient-to-r from-purple-600 to-pink-600 text-white
+            hover:from-purple-700 hover:to-pink-700 transition-colors duration-300
+          `}
+          aria-label="Open chat"
         >
           <MessageSquare className="w-6 h-6" />
         </motion.button>
