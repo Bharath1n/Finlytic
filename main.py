@@ -32,7 +32,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://finlytic.vercel.app"], 
+    allow_origins=["https://finlytic.vercel.app", "http://localhost:5173", "http://127.0.0.1:5173"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -40,16 +40,17 @@ app.add_middleware(
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
-    logger.error("❌ GEMINI_API_KEY not found in environment variables.")
+    logger.error(" GEMINI_API_KEY not found in environment variables.")
     raise EnvironmentError("GEMINI_API_KEY is missing in the .env file.")
 
-# Set the API key in the environment (required for google-genai)
+# Set the API key and configure the library
 os.environ["GOOGLE_API_KEY"] = GEMINI_API_KEY
+genai.configure(api_key=GEMINI_API_KEY)  # Explicitly configure the API key
 
 # Initialize GenerativeModel with the correct model name
 try:
     GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")  # Valid model name
-    chat_model = genai.GenerativeModel(model_name=GEMINI_MODEL)  # Corrected syntax
+    chat_model = genai.GenerativeModel(model_name=GEMINI_MODEL)
     logger.info(f"Successfully initialized chat_model with model: {GEMINI_MODEL}")
 except AttributeError as e:
     logger.error(f"Error initializing GenerativeModel: {e}")
