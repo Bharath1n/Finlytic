@@ -249,66 +249,99 @@ class FraudInput(BaseModel):
     Amount: float
 
 @app.post("/fraud/")
-async def predict_fraud(input_data: FraudInput):
+async def detect_fraud(input_data: FraudInput):
+    load_fraud_model()  # Lazy load only when needed
+    if fraud_scaler is None or fraud_model is None:
+        raise HTTPException(status_code=500, detail="Model or scaler not loaded properly")
     try:
-        input_array = np.array([[
-            input_data.Time, input_data.V1, input_data.V2, input_data.V3, input_data.V4,
-            input_data.V5, input_data.V6, input_data.V7, input_data.V8, input_data.V9,
-            input_data.V10, input_data.V11, input_data.V12, input_data.V13, input_data.V14,
-            input_data.V15, input_data.V16, input_data.V17, input_data.V18, input_data.V19,
-            input_data.V20, input_data.V21, input_data.V22, input_data.V23, input_data.V24,
-            input_data.V25, input_data.V26, input_data.V27, input_data.V28, input_data.Amount
-        ]])
-        input_scaled = fraud_scaler.transform(input_array)
-        input_tensor = torch.FloatTensor(input_scaled).reshape(1, 1, -1)
+        # Prepare input for LSTM
+        scaled_input = fraud_scaler.transform([list(input_data.dict().values())])
+        input_tensor = torch.FloatTensor(scaled_input).unsqueeze(1)  # [1, 1, 29]
+        
+        # Use the loaded state dict directly (assuming it's a state dict, not a model instance)
+        class LSTMFraudClassifier(nn.Module):
+            def __init__(self, input_dim, hidden_dim, num_layers):
+                super(LSTMFraudClassifier, self).__init__()
+                self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True)
+                self.fc = nn.Linear(hidden_dim, 1)
+                self.sigmoid = nn.Sigmoid()
+
+            def forward(self, x):
+                _, (hn, _) = self.lstm(x)
+                out = self.fc(hn[-1])
+                out = self.sigmoid(out)
+                return out
+
+        # Initialize and load model
+        input_dim = 29
+        hidden_dim = 64
+        num_layers = 2
+        model_instance = LSTMFraudClassifier(input_dim, hidden_dim, num_layers)
+        model_instance.load_state_dict(fraud_model)
+        model_instance.eval()
+
         with torch.no_grad():
-            output = fraud_model(input_tensor)
-            probability = output.item()
-        prediction = "Fraud" if probability > 0.5 else "Not Fraud"
-        return {
-            "fraud_prediction": prediction,
-            "fraud_probability": probability
-        }
+            output = model_instance(input_tensor).squeeze().item()
+        return {"fraud_probability": output}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.error(f"Fraud detection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Fraud detection failed: {str(e)}")
+    finally:
+        # Optional: Clear memory after use
+        global fraud_model, fraud_scaler
+        del fraud_model, fraud_scaler
+        fraud_model = None
+        fraud_scaler = None
+        import gc
+        gc.collect()
 
 @app.post("/predict/")
-async def predict_loan_default(input_data: LoanInput,):
+async def predict_loan_default(input_data: LoanInput):
+    load_loan_model()  # Lazy load only when needed
+    if loan_scaler is None or loan_model is None:
+        raise HTTPException(status_code=500, detail="Model or scaler not loaded properly")
     try:
-        input_dict = input_data.dict()
-        df = pd.DataFrame([input_dict])
-        processed_input = preprocess_input(df, loan_scaler, model_type='loan_default')
+        # Preprocess input data
+        processed_input = preprocess_input(input_data.dict(), loan_scaler, model_type='loan_default')
+        # Predict using RandomForest model
         prediction = loan_model.predict(processed_input)[0]
         probability = loan_model.predict_proba(processed_input)[0][1]
-        
-        return {
-            "prediction": int(prediction),
-            "probability": float(probability)
-        }
-    except ValueError as ve:
-        raise HTTPException(status_code=400, detail=f"Invalid input: {str(ve)}")
+        return {"prediction": int(prediction), "probability": float(probability)}
     except Exception as e:
-        logger.error(f"Error in predict_loan_default: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+        logger.error(f"Prediction error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+    finally:
+        # Optional: Clear memory after use (manual cleanup)
+        global loan_model, loan_scaler
+        del loan_model, loan_scaler
+        loan_model = None
+        loan_scaler = None
+        import gc
+        gc.collect()
 
-@app.post("/credit_risk/")
+@app.post("/credit_risk_predict/")
 async def predict_credit_risk(input_data: CreditRiskInput):
+    load_credit_risk_model()  # Lazy load only when needed
+    if credit_risk_scaler is None or credit_risk_model is None:
+        raise HTTPException(status_code=500, detail="Model or scaler not loaded properly")
     try:
-        input_dict = input_data.dict()
-        processed_input = preprocess_input(input_dict, scaler=credit_risk_scaler, model_type='credit_risk')
+        # Preprocess input data
+        processed_input = preprocess_input(input_data.dict(), credit_risk_scaler, model_type='credit_risk')
+        # Predict using RandomForest model
         prediction = credit_risk_model.predict([processed_input])[0]
         probability = credit_risk_model.predict_proba([processed_input])[0][1]
-        risk_category = "High Risk" if probability > 0.7 else "Medium Risk" if probability > 0.3 else "Low Risk"
-
-        return {
-            "credit_risk_prediction": risk_category,
-            "credit_risk_probability": float(probability)
-        }
-    except ValueError as ve:
-        raise HTTPException(status_code=400, detail=f"Invalid input: {str(ve)}")
+        return {"prediction": int(prediction), "probability": float(probability)}
     except Exception as e:
-        logger.error(f"Error in predict_credit_risk: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+        logger.error(f"Credit risk prediction error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Credit risk prediction failed: {str(e)}")
+    finally:
+        # Optional: Clear memory after use
+        global credit_risk_model, credit_risk_scaler
+        del credit_risk_model, credit_risk_scaler
+        credit_risk_model = None
+        credit_risk_scaler = None
+        import gc
+        gc.collect()
 
 @app.post("/chat/")
 @limiter.limit("10/minute")
@@ -459,50 +492,30 @@ async def delete_chat_history(session_id: str, mode: str):
 
         
 @app.get("/stats/")
-async def get_stats():
+async def stats():
     try:
-        df = pd.read_csv("data/loan_data.csv")
+        # Use the patched pd.read_csv to load from Google Drive via data_loader.py
+        df = pd.read_csv("loan_data.csv")  # Filename matches CSV_FILE_IDS key
         stats = {
-            "averageAge": float(df['Age'].mean()),
-            "averageIncome": float(df['Income'].mean()),
-            "averageLoanAmount": float(df['LoanAmount'].mean()),
-            "defaultRate": float(df['Default'].mean() * 100),
-            "defaultDistribution": [
-                int(df['Default'].value_counts().get(0, 0)),
-                int(df['Default'].value_counts().get(1, 0))
-            ],
-            "educationDistribution": df['Education'].value_counts().to_dict(),
-            "loanPurposeDistribution": df['LoanPurpose'].value_counts().to_dict(),
-            "employmentTypeDistribution": df['EmploymentType'].value_counts().to_dict(),
-            "maritalStatusDistribution": df['MaritalStatus'].value_counts().to_dict(),
-            "dtiDistribution": pd.cut(
-                df["DTIRatio"],
-                bins=[0, 0.2, 0.4, 0.6, 0.8, 1.0],
-                labels=["0-0.2", "0.2-0.4", "0.4-0.6", "0.6-0.8", "0.8-1.0"]
-            ).value_counts().sort_index().to_dict()
+            "averageAge": float(df["Age"].mean()),
+            "averageIncome": float(df["Income"].mean()),
+            "averageLoanAmount": float(df["LoanAmount"].mean()),
+            "defaultRate": float(df["Default"].mean() * 100),
+            "defaultDistribution": [int((df["Default"] == 0).sum()), int((df["Default"] == 1).sum())],
         }
-        logger.debug("Loan default stats computed successfully")
         return stats
     except Exception as e:
         logger.error(f"Error in get_stats: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Error calculating stats: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/credit_risk_stats/")
-async def get_credit_risk_stats():
+async def credit_risk_stats():
     try:
-        logger.debug("Loading credit_risk_data_encoded.csv")
-        data = pd.read_csv("data/credit_risk_data_encoded.csv")
-        logger.debug(f"CSV loaded. Columns: {data.columns.tolist()}")
-
-        logger.debug("Loading LabelEncoders")
-        with open("backend/model/le_person_home_ownership.pkl", "rb") as f:
-            le_home = pickle.load(f)
-        with open("backend/model/le_loan_intent.pkl", "rb") as f:
-            le_intent = pickle.load(f)
-        with open("backend/model/le_loan_grade.pkl", "rb") as f:
-            le_grade = pickle.load(f)
-        with open("backend/model/le_cb_person_default_on_file.pkl", "rb") as f:
-            le_default = pickle.load(f)
+        data = pd.read_csv("credit_risk_data_encoded.csv")  # Uses data_loader.py
+        le_home = load_from_drive("le_person_home_ownership.pkl")
+        le_intent = load_from_drive("le_loan_intent.pkl")
+        le_grade = load_from_drive("le_loan_grade.pkl")
+        le_default = load_from_drive("le_cb_person_default_on_file.pkl")
         logger.debug("LabelEncoders loaded")
 
         logger.debug("Decoding distributions")
