@@ -67,42 +67,46 @@ CREDIT_RISK_SCALER_PATH = os.path.join(MODEL_DIR, "credit_risk_scaler.pkl")
 FRAUD_MODEL_PATH = os.path.join(MODEL_DIR, "lstm_fraud_model.pth")
 FRAUD_SCALER_PATH = os.path.join(MODEL_DIR, "fraud_scaler.pkl")
 
-try:
-    model = load_from_drive("loan_model.pkl")
-    scaler = load_from_drive("scaler.pkl")
-except Exception as e:
-    logger.error(f"Error loading model/scaler: {e}", exc_info=True)
-    raise ValueError(f"Failed to load model or scaler: {str(e)}")
+loan_model = None
+loan_scaler = None
+credit_risk_model = None
+credit_risk_scaler = None
+fraud_model = None
+fraud_scaler = None
 
-try:
-    credit_risk_model = load_from_drive("credit_risk_model.pkl")
-    credit_risk_scaler = load_from_drive("credit_risk_scaler.pkl")
-except Exception as e:
-    logger.error(f"Error loading credit risk model/scaler: {e}", exc_info=True)
-    raise ValueError(f"Failed to load credit risk model or scaler: {str(e)}")
+def load_loan_model():
+    global loan_model, loan_scaler
+    if loan_model is None or loan_scaler is None:
+        try:
+            loan_model = load_from_drive("loan_model.pkl")
+            loan_scaler = load_from_drive("scaler.pkl")
+            logger.info("Loan model and scaler loaded")
+        except Exception as e:
+            logger.error(f"Error loading loan model or scaler: {e}")
+            raise HTTPException(status_code=500, detail="Failed to load loan model")
 
-class LSTMFraudClassifier(nn.Module):
-    def __init__(self, input_dim, hidden_dim, num_layers):
-        super(LSTMFraudClassifier, self).__init__()
-        self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_dim, 1)
-        self.sigmoid = nn.Sigmoid()
-    
-    def forward(self, x):
-        _, (hn, _) = self.lstm(x)
-        out = self.fc(hn[-1])
-        out = self.sigmoid(out)
-        return out
+def load_credit_risk_model():
+    global credit_risk_model, credit_risk_scaler
+    if credit_risk_model is None or credit_risk_scaler is None:
+        try:
+            credit_risk_model = load_from_drive("credit_risk_model.pkl")
+            credit_risk_scaler = load_from_drive("credit_risk_scaler.pkl")
+            logger.info("Credit risk model and scaler loaded")
+        except Exception as e:
+            logger.error(f"Error loading credit risk model or scaler: {e}")
+            raise HTTPException(status_code=500, detail="Failed to load credit risk model")
 
-try:
-    fraud_model = LSTMFraudClassifier(input_dim=30, hidden_dim=64, num_layers=2)
-    fraud_model.load_state_dict(load_from_drive("lstm_fraud_model.pth", is_torch=True))
-    fraud_model.eval()
-    fraud_scaler = load_from_drive("fraud_scaler.pkl")
-except Exception as e:
-    logger.error(f"Error loading fraud model/scaler: {e}", exc_info=True)
-    raise ValueError(f"Failed to load fraud model or scaler: {str(e)}")
-
+def load_fraud_model():
+    global fraud_model, fraud_scaler
+    if fraud_model is None or fraud_scaler is None:
+        try:
+            fraud_model = load_from_drive("lstm_fraud_model.pth", is_torch=True)
+            fraud_scaler = load_from_drive("fraud_scaler.pkl")
+            logger.info("Fraud model and scaler loaded")
+        except Exception as e:
+            logger.error(f"Error loading fraud model or scaler: {e}")
+            raise HTTPException(status_code=500, detail="Failed to load fraud model")
+        
 class ChatInput(BaseModel):
     session_id: str
     user_id: str | None
@@ -273,9 +277,9 @@ async def predict_loan_default(input_data: LoanInput,):
     try:
         input_dict = input_data.dict()
         df = pd.DataFrame([input_dict])
-        processed_input = preprocess_input(df, scaler, model_type='loan_default')
-        prediction = model.predict(processed_input)[0]
-        probability = model.predict_proba(processed_input)[0][1]
+        processed_input = preprocess_input(df, loan_scaler, model_type='loan_default')
+        prediction = loan_model.predict(processed_input)[0]
+        probability = loan_model.predict_proba(processed_input)[0][1]
         
         return {
             "prediction": int(prediction),
@@ -306,24 +310,8 @@ async def predict_credit_risk(input_data: CreditRiskInput):
         logger.error(f"Error in predict_credit_risk: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
 
-def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("""CREATE TABLE IF NOT EXISTS chat_history (
-        session_id TEXT,
-        user_id TEXT,
-        mode TEXT,
-        message TEXT,
-        response TEXT,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-    )""")
-    conn.commit()
-    conn.close()
-
-init_db()
-
 @app.post("/chat/")
-@limiter.limit("20/minute")
+@limiter.limit("10/minute")
 async def chat_with_ai(input_data: ChatInput, request: Request):
     try:
         user_message = input_data.message
