@@ -1,143 +1,153 @@
-Fin-Lytic: AI-Powered Financial Analysis Platform
-Fin-Lytic is a web application that provides financial insights through loan default prediction, credit risk assessment, and an AI-driven chatbot. Built with a React frontend and a FastAPI backend, it leverages machine learning models and the Gemini API to deliver accurate predictions and user-friendly financial advice.
-Features
+Fin-Lytic: AI-Powered Financial Insights Web App
 
-Loan Default Prediction: Predicts the likelihood of loan default based on user inputs (e.g., Age, Income, Loan Amount).
-Credit Risk Assessment: Evaluates credit risk (High/Medium/Low) using financial and personal data.
-AI Financial Assistant: A chatbot with three modes:
-General: Answers broad financial questions (e.g., budgeting, credit scores).
-Loan Prediction: Provides insights on loan default risks and model outputs.
-Credit Risk: Explains credit risk categories and guides data input.
+Fin-Lytic is a full-stack, AI-enhanced web application designed to deliver advanced financial insights through loan default prediction, credit risk analysis, and an interactive chatbot.
+Built with a robust architecture that integrates machine learning models, conversational AI, and a responsive frontend, Fin-Lytic is engineered for real-world deployment and practical financial decision-making support.
 
+Table of Contents
 
-Responsive UI: Features a hamburger menu for mobile devices and light/dark theme support.
-Data Visualizations: Dashboard displays statistical insights from loan and credit risk datasets.
-Rate Limiting: Ensures API stability with a 5 requests/minute limit for the chatbot.
+-Project Overview
+-Core Features
+-System Architecture
+-Model and Tool Selection
+-Setup and Deployment
+-Performance Considerations
+-Limitations
+-Future Enhancements
+-Contributing
+-License
+-Contact
+-Links
 
-Tech Stack
-Frontend
+Project Overview
 
-React: JavaScript library for building the UI.
-Vite: Fast build tool for development and production.
-Tailwind CSS: Utility-first CSS framework for styling.
-Framer Motion: Animations for the chatbot and hamburger menu.
-Lucide React: Icon library for UI elements.
-React Router: Client-side routing.
-Axios: HTTP client for API requests.
-React Markdown: Renders Markdown in the chatbot.
+Fin-Lytic addresses the need for data-driven financial decision-making by leveraging AI to provide actionable insights.
+The platform integrates:
 
-Backend
+-Gemini API for advanced conversational AI capabilities.
+-Machine Learning Models for fast, accurate predictions and chatbot intelligence.
+-React + FastAPI stack for seamless user experience and backend efficiency.
+-Designed for financial professionals and individuals, Fin-Lytic offers tools for risk assessment, loan prediction, and AI-powered conversational assistance.
 
-FastAPI: High-performance Python web framework.
-Pandas & Scikit-learn: Data processing and machine learning models.
-Google Generative AI: Powers the chatbot via the Gemini API.
-SlowAPI: Rate limiting for API endpoints.
-Python Dotenv: Manages environment variables.
-Uvicorn: ASGI server for running FastAPI.
+Core Features
 
+🔮 Loan Default Prediction: Uses ML models to predict loan default risk based on user inputs (age, income, loan amount, etc.).
+📊 Credit Risk Classification: Assigns risk levels (High, Medium, Low) with data-driven analysis.
+🤖 AI Chatbot (Multi-Mode):
+    -General Mode: Budgeting & credit management queries.
+    -Loan Prediction Mode: Forecasts loan defaults.
+    -Credit Risk Mode: Provides in-depth financial risk assessment.
+📈 Interactive Dashboard: Visualizes financial metrics such as default rates, income stats, and predictions.
+🎨 Responsive UI: Light/dark mode, Framer Motion animations, and Lucide React icons.
+⚡ Performance & Stability: Rate limiting (~5 chatbot requests/minute) and modular design separating frontend, backend, AI, and data storage.
+
+System Architecture
+
+graph TD
+    A[User Input: Web UI] --> B[Authentication Node (Authgear)]
+    A --> C[Data Input Node]
+    B --> D[Session Management Node]
+    C --> E[Prediction Node (ML Models)]
+    C --> F[Chatbot Node (Gemini API)]
+    E --> G[Risk Assessment Node]
+    F --> G
+    G --> H[Dashboard Rendering Node]
+    H --> I[Output: Visualized Data]
+    I --> J[SQLite Storage]
+    K[Checkpointing (Memory)] --> B
+    K --> C
+    K --> E
+    K --> F
+    K --> G
+    K --> H
+
+Model and Tool Selection
+
+Gemini API: Conversational AI for chatbot.
+Scikit-learn: Training & deploying ML models.
+LSTM & FinBERT: Time-series & financial text analysis.
+FastAPI: High-performance backend with async capabilities.
+React + Tailwind CSS: Modern responsive frontend.
+Framer Motion & Lucide React: Smooth animations & icons.
+Authgear: Secure authentication & session management.
+
+Setup and Deployment
 Prerequisites
 
-Node.js (v18 or higher)
-Python (3.9 or higher)
+Node.js v18+
+Python 3.9+
 Git
-Gemini API Key (obtain from Google Cloud Console)
-A GitHub account for deployment
+Gemini API Key (Google Cloud)
+Authgear Client ID & Endpoint
 
-Setup Instructions
-1. Clone the Repository
-git clone https://github.com/your-username/fin-lytic.git
-cd fin-lytic
+Clone & Setup
+git clone https://github.com/Bharath1n/Finlytic.git
+cd Finlytic
 
-2. Backend Setup
-
-Navigate to the backend directory:
+Backend Setup
 cd backend
-
-Create a virtual environment and activate it:
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-Install dependencies:
+python3 -m venv venv
+source venv\Scripts\activate
 pip install -r requirements.txt
-
-Create a .env file in the backend/ directory:
-GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-2.0-flash
-
-Ensure model/ and data/ directories contain the required files (listed above).
-Run the backend:
+echo "GEMINI_API_KEY=your_key" > .env
 uvicorn main:app --reload --port 8000
 
-3. Frontend Setup
+Frontend Setup
+cd frontend
+npm install
+npm run dev   # Opens at http://localhost:5137
 
-Navigate to the frontend:cd frontend
+Deployment
 
-Install dependencies:npm install
-
-Run the frontend:npm run dev
-
-Open http://localhost:5137 in your browser.
-
-4. Verify Setup
-
-Test the backend:
-Health check: http://localhost:8000/
-Chatbot: POST http://localhost:8000/chat/ with { "message": "What is a credit score?" }
+Vercel (Frontend):Add a vercel.json file:
+{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
 
 
-Test the frontend:
-Check the hamburger menu on mobile view (<768px).
-Open the chatbot and test all modes.
-Submit loan/credit risk predictions via forms or chatbot.
-
-Usage
-
-Navigate the App:
-
-Use the hamburger menu on mobile devices.
-Switch between light/dark themes via the toggle.
-Access pages: Home, Dashboard, Loan Prediction, Credit Risk, Info, Chatbot.
-
-Chatbot:
-
-General Mode: Ask financial questions (e.g., “How to improve credit score?”).
-Loan Prediction Mode: Query default risks or input data (e.g., “Predict loan for Age: 30, Income: 50000…”).
-Credit Risk Mode: Assess risk levels or input data (e.g., “Assess for Age: 25, Income: 40000…”).
-Use quick reply buttons for common queries.
-Clear chat history with the “Clear Chat” button.
-
-Predictions:
-
-Use forms on /loan and /credit-risk for structured inputs.
-Alternatively, input data via the chatbot in prediction modes.
-
-Dashboard:
-
-View statistical insights (e.g., average income, default rates) from /stats/ and /credit_risk_stats/.
+Render (Backend):Set runtime to Python & add environment variables.Start command:
+uvicorn app.api:api_app --host 0.0.0.0 --port $PORT
 
 
-Troubleshooting
+Performance Considerations
 
-Backend Errors:
+Latency: ~2–5s for predictions & chatbot responses.
+Resource Usage: Optimized with rate limiting.
+Cost Efficiency: ~$0.01–0.03/session (Gemini API).
 
-Model Files Missing: Ensure model/ and data/ are in the repository.
-Gemini API Failure: Verify GEMINI_API_KEY in .env or Render.
-Rate Limit (429): Wait 1 minute or increase slowapi limit in main.py.
+Limitations
 
-Frontend Errors:
+API rate limits (Gemini & Authgear).
+SQLite storage (not ideal for production scaling).
+Cold starts on free-tier Render deployments.
 
-Blank Screen: Check DevTools (F12 > Console) for errors.
-Chatbot Not Working: Ensure backend URL is correct in Chatbot.jsx.
+Future Enhancements
+
+Async processing for faster responses.
+Multi-model support for higher accuracy.
+Transition from SQLite → PostgreSQL.
+Comprehensive end-to-end testing.
 
 Contributing
 
-Fork the repository.
-Create a feature branch: git checkout -b feature-name
-Commit changes: git commit -m "Add feature"
-Push to the branch: git push origin feature-name
-Open a Pull Request.
+-Fork the repository.
+-Create a feature branch:
+    git checkout -b feature-name
+-Commit changes & push:
+    git push origin feature-name
+-Open a Pull Request.
+-Report issues via GitHub Issues.
+
 
 License
 This project is licensed under the MIT License.
 Contact
-For issues or inquiries, open a GitHub issue or contact the maintainer at [bharath.n208@gmail.com].
+
+📧 Email: bharath.n208@gmail.com
+
+Links
+
+🌐 Frontend: https://finlytic.vercel.app
+⚙️ Backend: https://finlytic.onrender.com
+💻 GitHub Repo: https://github.com/Bharath1n/Finlytic
