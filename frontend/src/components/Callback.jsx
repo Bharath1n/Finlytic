@@ -9,7 +9,7 @@ const Callback = () => {
   useEffect(() => {
     authgearClient.finishAuthentication()
       .then(() => {
-        navigate("/dashboard");
+        navigate("/");
       })
       .catch((error) => {
         console.error("Authentication callback error:", error);

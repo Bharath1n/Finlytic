@@ -94,9 +94,10 @@ const AppContent = () => {
   ];
 
   const handleLogin = () => {
-    const redirectURI = window.location.hostname === 'localhost'
-      ? 'http://localhost:5173/callback'
-      : 'https://finlytic.vercel.app/callback';
+    const redirectURI = 'https://finlytic.vercel.app/callback';
+    // window.location.hostname === 'localhost'
+    //   ? 'http://localhost:5173/callback '
+    //   : 'https://finlytic.vercel.app/callback';
     authgearClient.startAuthentication({
       redirectURI,
       prompt: 'login',
