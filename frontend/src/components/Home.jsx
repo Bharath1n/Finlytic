@@ -1,22 +1,20 @@
-import React, { useState, useEffect } from "react";
-import { motion, useScroll, useTransform, useSpring } from "framer-motion";
-import { Menu, X, ChevronRight, CreditCard, Shield, Bot, TrendingUp, Zap, Star, ArrowRight, Play, Users, Award, DollarSign, Github, Twitter, Linkedin, Mail } from "lucide-react";
+// Home.jsx
+import React, { useEffect, useState } from 'react';
+import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { CreditCard, Shield, Bot, TrendingUp, Zap, Star, ArrowRight, Play, Users, Award, DollarSign } from 'lucide-react';
+import { useTheme } from './ThemeContext';
 
 const Homepage = () => {
-  const [theme, setTheme] = useState('light');
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { theme } = useTheme();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const { scrollY } = useScroll();
-  
   const y1 = useTransform(scrollY, [0, 300], [0, -50]);
   const y2 = useTransform(scrollY, [0, 300], [0, -100]);
   const opacity = useTransform(scrollY, [0, 300], [1, 0]);
-  
   const springConfig = { stiffness: 100, damping: 30, restDelta: 0.001 };
   const x = useSpring(0, springConfig);
   const y = useSpring(0, springConfig);
-
-  const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light');
 
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -24,7 +22,6 @@ const Homepage = () => {
       x.set(e.clientX / window.innerWidth - 0.5);
       y.set(e.clientY / window.innerHeight - 0.5);
     };
-
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, [x, y]);
@@ -46,40 +43,33 @@ const Homepage = () => {
           transition={{
             duration: Math.random() * 10 + 20,
             repeat: Infinity,
-            repeatType: "reverse",
-            ease: "linear",
+            repeatType: 'reverse',
+            ease: 'linear',
           }}
         />
       ))}
     </div>
   );
 
-  const GradientOrb = ({ delay = 0, scale = 1, color = "blue" }) => (
+  const GradientOrb = ({ delay = 0, scale = 1, color = 'blue' }) => (
     <motion.div
       className={`absolute w-96 h-96 rounded-full opacity-20 blur-3xl ${
-        color === "blue" ? "bg-blue-500" : 
-        color === "purple" ? "bg-purple-500" : 
-        "bg-pink-500"
+        color === 'blue' ? 'bg-blue-500' : color === 'purple' ? 'bg-purple-500' : 'bg-pink-500'
       }`}
-      animate={{
-        scale: [scale, scale * 1.2, scale],
-        opacity: [0.1, 0.3, 0.1],
-      }}
-      transition={{
-        duration: 8,
-        repeat: Infinity,
-        delay,
-        ease: "easeInOut",
-      }}
+      animate={{ scale: [scale, scale * 1.2, scale], opacity: [0.1, 0.3, 0.1] }}
+      transition={{ duration: 8, repeat: Infinity, delay, ease: 'easeInOut' }}
     />
   );
 
   return (
-    <>
+    <div className={`relative ${theme === 'light' ? 'bg-gradient-to-br from-gray-50 via-white to-blue-50 text-black' : 'bg-gradient-to-br from-gray-900 via-black to-blue-900 text-white'}`}>
+      <FloatingElements />
+      <GradientOrb delay={0} scale={1} color="blue" />
+      <GradientOrb delay={2} scale={0.8} color="red" />
+      <GradientOrb delay={4} scale={0.6} color="white" />
 
-      {/* Hero Section */}
       <motion.section
-        className="min-h-screen flex flex-col items-center justify-center text-center px-8 relative z-10"
+        className="min-h-screen flex flex-col items-center justify-center text-center px-8 relative z-10 mt-0 pt-0"
         style={{ y: y1, opacity }}
       >
         <motion.div
@@ -91,13 +81,12 @@ const Homepage = () => {
           <div className={`w-32 h-32 mx-auto rounded-full ${theme === 'light' ? 'bg-gradient-to-r from-blue-100 to-purple-100' : 'bg-gradient-to-r from-blue-900 to-purple-900'} flex items-center justify-center mb-8 relative`}>
             <motion.div
               animate={{ rotate: 360 }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
               className="absolute inset-2 border-2 border-dashed border-blue-400 rounded-full"
             />
             <TrendingUp className="w-12 h-12 text-blue-500" />
           </div>
         </motion.div>
-
         <motion.h1
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -108,7 +97,6 @@ const Homepage = () => {
             FIN-LYTIC
           </span>
         </motion.h1>
-
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -122,7 +110,6 @@ const Homepage = () => {
             Predict. Analyze. Optimize. Your financial future starts here.
           </p>
         </motion.div>
-
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -134,31 +121,28 @@ const Homepage = () => {
             whileTap={{ scale: 0.98 }}
             className="group bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white px-8 py-4 rounded-2xl text-lg font-semibold shadow-2xl shadow-blue-500/25 relative overflow-hidden"
           >
-            <div className="flex items-center relative z-10">
+            <Link to="/dashboard" className="flex items-center relative z-10">
               <Play className="mr-2 w-5 h-5" />
               Launch Dashboard
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </div>
+            </Link>
             <motion.div
               className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
               whileHover={{ scale: 1.1 }}
             />
           </motion.button>
-
           <motion.button
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.98 }}
             className={`px-8 py-4 rounded-2xl text-lg font-semibold border-2 backdrop-blur-sm transition-all duration-300 ${
-              theme === 'light' 
-                ? 'border-gray-300 text-gray-700 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50' 
+              theme === 'light'
+                ? 'border-gray-300 text-gray-700 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50'
                 : 'border-gray-600 text-gray-300 hover:border-blue-400 hover:text-blue-400 hover:bg-blue-900/20'
             }`}
           >
             Watch Demo
           </motion.button>
         </motion.div>
-
-        {/* Stats */}
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
@@ -166,9 +150,9 @@ const Homepage = () => {
           className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl"
         >
           {[
-            { icon: Users, value: "10K+", label: "Active Users" },
-            { icon: Award, value: "99.9%", label: "Accuracy" },
-            { icon: DollarSign, value: "$50M+", label: "Analyzed" }
+            { icon: Users, value: '10K+', label: 'Active Users' },
+            { icon: Award, value: '99.9%', label: 'Accuracy' },
+            { icon: DollarSign, value: '$50M+', label: 'Analyzed' },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -185,7 +169,6 @@ const Homepage = () => {
         </motion.div>
       </motion.section>
 
-      {/* Features Section */}
       <section id="features" className={`py-32 px-8 relative ${theme === 'light' ? 'bg-gradient-to-r from-blue-50 to-purple-50' : 'bg-gradient-to-r from-blue-900/20 to-purple-900/20'}`}>
         <motion.div
           initial={{ opacity: 0, y: 50 }}
@@ -195,7 +178,7 @@ const Homepage = () => {
           className="max-w-7xl mx-auto"
         >
           <div className="text-center mb-20">
-            <motion.h2 
+            <motion.h2
               className="text-4xl md:text-6xl font-bold mb-6"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -216,29 +199,28 @@ const Homepage = () => {
               Advanced AI algorithms designed to revolutionize your financial decision-making process
             </motion.p>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                title: "Loan Default Prediction",
-                desc: "Advanced ML models predict loan defaults with 99.9% accuracy using comprehensive risk analysis",
+                title: 'Loan Default Prediction',
+                desc: 'Advanced ML models predict loan defaults with 99.9% accuracy using comprehensive risk analysis',
                 icon: CreditCard,
-                gradient: "from-blue-500 to-cyan-400",
-                delay: 0.2
+                gradient: 'from-blue-500 to-cyan-400',
+                delay: 0.2,
               },
               {
-                title: "Credit Risk Analysis",
-                desc: "Real-time credit risk assessment with instant scoring and detailed risk breakdown reports",
+                title: 'Credit Risk Analysis',
+                desc: 'Real-time credit risk assessment with instant scoring and detailed risk breakdown reports',
                 icon: Shield,
-                gradient: "from-purple-500 to-pink-400",
-                delay: 0.4
+                gradient: 'from-purple-500 to-pink-400',
+                delay: 0.4,
               },
               {
-                title: "AI Financial Assistant",
-                desc: "Intelligent chatbot providing personalized financial guidance and instant expert consultation",
+                title: 'AI Financial Assistant',
+                desc: 'Intelligent chatbot providing personalized financial guidance and instant expert consultation',
                 icon: Bot,
-                gradient: "from-pink-500 to-red-400",
-                delay: 0.6
+                gradient: 'from-pink-500 to-red-400',
+                delay: 0.6,
               },
             ].map((feature, idx) => (
               <motion.div
@@ -253,24 +235,18 @@ const Homepage = () => {
                 <motion.div
                   className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${feature.gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500`}
                 />
-                
                 <div className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${feature.gradient} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
                   <feature.icon className="w-8 h-8 text-white" />
                 </div>
-                
-                <h3 className="text-2xl font-bold mb-4 group-hover:text-blue-500 transition-colors">
-                  {feature.title}
-                </h3>
-                
-                <p className={`${theme === 'light' ? 'text-gray-600' : 'text-gray-300'} leading-relaxed mb-6`}>
-                  {feature.desc}
-                </p>
-                
-                <motion.div 
+                <h3 className="text-2xl font-bold mb-4 group-hover:text-blue-500 transition-colors">{feature.title}</h3>
+                <p className={`${theme === 'light' ? 'text-gray-600' : 'text-gray-300'} leading-relaxed mb-6`}>{feature.desc}</p>
+                <motion.div
                   className="flex items-center text-blue-500 font-semibold group-hover:translate-x-2 transition-transform duration-300"
                   whileHover={{ x: 5 }}
                 >
-                  Learn More <ArrowRight className="ml-2 w-4 h-4" />
+                  <Link to={feature.title === 'Loan Default Prediction' ? '/loan' : feature.title === 'Credit Risk Analysis' ? '/credit-risk' : '/chatbot'}>
+                    Learn More <ArrowRight className="ml-2 w-4 h-4" />
+                  </Link>
                 </motion.div>
               </motion.div>
             ))}
@@ -278,12 +254,8 @@ const Homepage = () => {
         </motion.div>
       </section>
 
-      {/* Interactive Demo Section */}
       <section id="demo" className={`py-32 px-8 ${theme === 'light' ? 'bg-gradient-to-l from-gray-50 to-blue-50' : 'bg-gradient-to-l from-gray-900 to-blue-900'} relative overflow-hidden`}>
-        <motion.div
-          style={{ y: y2 }}
-          className="max-w-6xl mx-auto text-center"
-        >
+        <motion.div style={{ y: y2 }} className="max-w-6xl mx-auto text-center">
           <motion.h2
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -295,7 +267,6 @@ const Homepage = () => {
               See It In Action
             </span>
           </motion.h2>
-
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -317,7 +288,6 @@ const Homepage = () => {
                   Try Interactive Demo
                 </motion.button>
               </div>
-              
               <motion.div
                 className={`${theme === 'light' ? 'bg-gradient-to-br from-blue-100 to-purple-100' : 'bg-gradient-to-br from-blue-900 to-purple-900'} rounded-2xl p-8 relative`}
                 whileHover={{ scale: 1.05 }}
@@ -330,7 +300,7 @@ const Homepage = () => {
                       className={`h-4 ${theme === 'light' ? 'bg-white/50' : 'bg-white/20'} rounded-full`}
                       initial={{ width: 0 }}
                       animate={{ width: `${Math.random() * 60 + 40}%` }}
-                      transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
+                      transition={{ duration: 2, repeat: Infinity, repeatType: 'reverse' }}
                     />
                   ))}
                 </div>
@@ -345,7 +315,6 @@ const Homepage = () => {
         </motion.div>
       </section>
 
-      {/* CTA Section */}
       <section className={`py-32 px-8 ${theme === 'light' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : 'bg-gradient-to-r from-blue-800 to-purple-800'} text-white relative overflow-hidden`}>
         <motion.div
           initial={{ opacity: 0 }}
@@ -363,7 +332,6 @@ const Homepage = () => {
           >
             Ready to Transform Your Financial Future?
           </motion.h2>
-          
           <motion.p
             initial={{ y: 30, opacity: 0 }}
             whileInView={{ y: 0, opacity: 1 }}
@@ -373,7 +341,6 @@ const Homepage = () => {
           >
             Join thousands of users who trust FIN-LYTIC for their financial intelligence needs
           </motion.p>
-          
           <motion.div
             initial={{ scale: 0 }}
             whileInView={{ scale: 1 }}
@@ -386,10 +353,11 @@ const Homepage = () => {
               whileTap={{ scale: 0.98 }}
               className="bg-white text-purple-600 px-8 py-4 rounded-2xl text-lg font-bold shadow-2xl hover:shadow-3xl transition-all duration-300 flex items-center justify-center"
             >
-              Get Started Free
-              <Zap className="ml-2 w-5 h-5" />
+              <Link to="/dashboard" className="flex items-center">
+                Get Started Free
+                <Zap className="ml-2 w-5 h-5" />
+              </Link>
             </motion.button>
-            
             <motion.button
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.98 }}
@@ -400,8 +368,7 @@ const Homepage = () => {
           </motion.div>
         </motion.div>
       </section>
-      
-    </>
+    </div>
   );
 };
 

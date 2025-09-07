@@ -87,7 +87,7 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
-  const [theme, setTheme] = useState('light');
+  const [theme, setTheme] = useState('dark');
   const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light');
   const [error, setError] = useState('');
   const [mode, setMode] = useState('loan_default');

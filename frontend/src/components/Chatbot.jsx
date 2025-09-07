@@ -25,7 +25,7 @@ const nonFraudFeatures = {
 };
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const Chatbot = ({ isFullPage = false }) => {
-  const [theme, setTheme] = useState('light');
+  const [theme, setTheme] = useState('dark');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(isFullPage);
   const [message, setMessage] = useState('');
