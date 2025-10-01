@@ -86,9 +86,8 @@ const GradientOrb = ({ delay = 0, scale = 1, color = "blue" }) => (
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const Dashboard = () => {
+  const { theme } = useTheme();
   const [stats, setStats] = useState(null);
-  const [theme, setTheme] = useState('dark');
-  const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light');
   const [error, setError] = useState('');
   const [mode, setMode] = useState('loan_default');
   const [isExportingPDF, setIsExportingPDF] = useState(false);
@@ -383,9 +382,14 @@ const Dashboard = () => {
 
 
   return (
-    <>
+    <div className={`min-h-screen font-display relative overflow-hidden ${theme === 'light' ? 'bg-gradient-to-br from-gray-50 via-white to-blue-50 text-gray-900' : 'bg-gradient-to-br from-gray-900 via-black to-blue-900 text-gray-100'}`}>
+      <FloatingElements theme={theme} />
+      <GradientOrb delay={0} scale={1} color="blue" />
+      <GradientOrb delay={2} scale={0.8} color="purple" />
+      <GradientOrb delay={4} scale={0.6} color="pink" />
+      
       {/* Dashboard Content */}
-      <div className="relative z-10 px-8 pb-32" ref={dashboardRef}>
+      <div className="relative z-10 px-8 pb-32 pt-8" ref={dashboardRef}>
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
@@ -526,7 +530,7 @@ const Dashboard = () => {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ delay: 1.4 + i * 0.1, duration: 0.6 }}
                 whileHover={{ y: -5, scale: 1.02 }}
-                className={`group ${theme === 'light' ? 'bg-white/60' : 'bg-black/40'} backdrop-blur-lg border ${theme === 'light' ? 'border-white/30' : 'border-white/10'} rounded-3xl p-6 shadow-xl hover:shadow-2xl transition-all duration-500 relative overflow-hidden`}
+                className="group glass border rounded-3xl p-6 shadow-xl hover:shadow-2xl transition-all duration-500 relative overflow-hidden"
               >
                 <motion.div
                   className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${stat.gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500`}
@@ -555,7 +559,7 @@ const Dashboard = () => {
             className="space-y-12"
           >
             {/* Default Distribution Chart */}
-            <div className={`${theme === 'light' ? 'bg-white/60' : 'bg-black/40'} backdrop-blur-lg border ${theme === 'light' ? 'border-white/30' : 'border-white/10'} rounded-3xl p-8 shadow-2xl`}>
+            <div className="glass border rounded-3xl p-8 shadow-2xl">
               <div className="flex items-center justify-center mb-8">
                 <PieChart className="w-8 h-8 text-blue-500 mr-3" />
                 <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
@@ -580,7 +584,7 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {mode === 'loan_default' && (
                 <>
-                  <div className={`${theme === 'light' ? 'bg-white/60' : 'bg-black/40'} backdrop-blur-lg border ${theme === 'light' ? 'border-white/30' : 'border-white/10'} rounded-3xl p-6 shadow-xl hover:shadow-2xl transition-all duration-500`}>
+                  <div className="glass border rounded-3xl p-6 shadow-xl hover:shadow-2xl transition-all duration-500">
                     <div className="flex items-center mb-6">
                       <BarChart2 className="w-6 h-6 text-green-500 mr-3" />
                       <h4 className="text-xl font-semibold">Education Distribution</h4>
@@ -776,7 +780,7 @@ const Dashboard = () => {
           </motion.div>
         </motion.div>
       </div>
-    </>
+    </div>
   );
 };
 

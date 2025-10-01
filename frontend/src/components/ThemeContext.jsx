@@ -1,18 +1,55 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState('dark');
+  const [theme, setTheme] = useState(() => {
+    // Check for saved theme preference or default to 'dark'
+    const savedTheme = localStorage.getItem('finlytic-theme');
+    return savedTheme || 'dark';
+  });
 
   const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light');
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('finlytic-theme', newTheme);
+  };
+
+  // Apply theme to document
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
+
+  const themeConfig = {
+    light: {
+      background: 'from-gray-50 via-white to-blue-50',
+      text: 'text-gray-900',
+      card: 'bg-white/80 border-gray-200/50',
+      input: 'bg-white/50 border-gray-200 text-gray-900',
+      button: 'bg-blue-600 hover:bg-blue-700',
+      accent: 'text-blue-600',
+      muted: 'text-gray-500',
+    },
+    dark: {
+      background: 'from-gray-900 via-black to-blue-900',
+      text: 'text-gray-100',
+      card: 'bg-gray-800/80 border-gray-700/50',
+      input: 'bg-gray-800/50 border-gray-600 text-gray-100',
+      button: 'bg-blue-600 hover:bg-blue-700',
+      accent: 'text-blue-400',
+      muted: 'text-gray-400',
+    }
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ 
+      theme, 
+      toggleTheme, 
+      config: themeConfig[theme] 
+    }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -62,14 +62,14 @@ const Homepage = () => {
   );
 
   return (
-    <div className={`relative ${theme === 'light' ? 'bg-gradient-to-br from-gray-50 via-white to-blue-50 text-black' : 'bg-gradient-to-br from-gray-900 via-black to-blue-900 text-white'}`}>
+    <div className={`relative min-h-screen ${theme === 'light' ? 'bg-gradient-to-br from-gray-50 via-white to-blue-50 text-black' : 'bg-gradient-to-br from-gray-900 via-black to-blue-900 text-white'}`}>
       <FloatingElements />
       <GradientOrb delay={0} scale={1} color="blue" />
-      <GradientOrb delay={2} scale={0.8} color="red" />
-      <GradientOrb delay={4} scale={0.6} color="white" />
+      <GradientOrb delay={2} scale={0.8} color="purple" />
+      <GradientOrb delay={4} scale={0.6} color="pink" />
 
       <motion.section
-        className="min-h-screen flex flex-col items-center justify-center text-center px-8 relative z-10 mt-0 pt-0"
+        className="min-h-screen flex flex-col items-center justify-center text-center px-4 md:px-8 relative z-10 pt-20"
         style={{ y: y1, opacity }}
       >
         <motion.div
@@ -254,7 +254,7 @@ const Homepage = () => {
         </motion.div>
       </section>
 
-      <section id="demo" className={`py-32 px-8 ${theme === 'light' ? 'bg-gradient-to-l from-gray-50 to-blue-50' : 'bg-gradient-to-l from-gray-900 to-blue-900'} relative overflow-hidden`}>
+      {/* <section id="demo" className={`py-32 px-8 ${theme === 'light' ? 'bg-gradient-to-l from-gray-50 to-blue-50' : 'bg-gradient-to-l from-gray-900 to-blue-900'} relative overflow-hidden`}>
         <motion.div style={{ y: y2 }} className="max-w-6xl mx-auto text-center">
           <motion.h2
             initial={{ opacity: 0, y: 30 }}
@@ -313,9 +313,9 @@ const Homepage = () => {
             </div>
           </motion.div>
         </motion.div>
-      </section>
+      </section> */}
 
-      <section className={`py-32 px-8 ${theme === 'light' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : 'bg-gradient-to-r from-blue-800 to-purple-800'} text-white relative overflow-hidden`}>
+      {/* <section className={`py-32 px-8 ${theme === 'light' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : 'bg-gradient-to-r from-blue-800 to-purple-800'} text-white relative overflow-hidden`}>
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
@@ -367,7 +367,7 @@ const Homepage = () => {
             </motion.button>
           </motion.div>
         </motion.div>
-      </section>
+      </section> */}
     </div>
   );
 };
