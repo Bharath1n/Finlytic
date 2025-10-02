@@ -61,9 +61,9 @@ graph TD
     F --> F1[Multi-Mode Chatbot]
     F --> F2[Context Management]
     
-    G --> G1[SQLite Database]
-    G --> G2[Model Storage]
-    G --> G3[Session Cache]
+G --> G1[SQLite Database]
+G --> G2[Model Storage]
+G --> G3[Session Cache]
 
 Technology Stack
 
