@@ -45,7 +45,6 @@ FIN-LYTIC is a cutting-edge, full-stack financial intelligence platform that lev
 
 ## 🏗️ System Architecture
 
-```mermaid
 graph TD
     A[Client Applications] --> B[Authentication Layer - Authgear]
     B --> C[Frontend - React/Vite]
@@ -53,17 +52,14 @@ graph TD
     D --> E[ML Engine]
     D --> F[AI Service - Gemini]
     D --> G[Data Layer]
-    
     E --> E1[Loan Default Model]
     E --> E2[Credit Risk Model] 
     E --> E3[Fraud Detection LSTM]
-    
     F --> F1[Multi-Mode Chatbot]
     F --> F2[Context Management]
-    
-G --> G1[SQLite Database]
-G --> G2[Model Storage]
-G --> G3[Session Cache]
+    G --> G1[SQLite Database]
+    G --> G2[Model Storage]
+    G --> G3[Session Cache]
 
 Technology Stack
 
