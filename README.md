@@ -65,7 +65,8 @@ graph TD
     G --> G2[Model Storage]
     G --> G3[Session Cache]
 
-🛠️ Technology Stack
+Technology Stack
+
 Backend Infrastructure
 FastAPI: High-performance async API framework
 Python 3.9+: Core backend development
@@ -97,13 +98,13 @@ Render: Backend API hosting
 GitHub Actions: CI/CD pipeline
 Environment Management: Multi-stage configuration
 
-📈 Model Performance Metrics
+Model Performance Metrics
 Model	                    Accuracy	Precision	Recall	F1-Score
 Loan Default Prediction	  85.2%	    84.7%	    83.9%	  84.3%
 Credit Risk Assessment	  87.1%	    86.3%	    85.8%	  86.0%
 
 
-🚀 Quick Start
+Quick Start
 Prerequisites
 Node.js v18+ and npm/yarn
 Python 3.9+ with pip
@@ -118,11 +119,11 @@ Frontend: http://localhost:5173
 Backend API: http://localhost:8000
 API Documentation: http://localhost:8000/docs
 
-🌐 Production Deployment
+Production Deployment
 Frontend (Vercel)
 Backend (Render)
 
-📊 API Endpoints
+API Endpoints
 Prediction Services
 POST /predict/ - Loan default prediction
 POST /credit_risk/ - Credit risk assessment
@@ -137,10 +138,10 @@ GET /stats/ - Loan default statistics
 GET /credit_risk_stats/ - Credit risk analytics
 GET / - Health check endpoint
 
-🔧 Configuration
+Configuration
 Environment Variables
 
-🎯 Use Cases
+Use Cases
 Financial Institutions
 Automated loan approval workflows
 Risk assessment automation
@@ -157,13 +158,13 @@ Loan eligibility checking
 Financial planning assistance
 Fraud awareness education
 
-🚧 Limitations & Considerations
+Limitations & Considerations
 API Rate Limits: Gemini API throttling may affect chat responsiveness
 Database Scaling: SQLite suitable for development; PostgreSQL recommended for production
 Model Retraining: Periodic model updates required for optimal performance
 Cold Starts: Free-tier deployments may experience initial latency
 
-🔮 Future Roadmap
+ Future Roadmap
  Multi-Model Ensemble: Combine multiple ML algorithms for improved accuracy
  Real-time Streaming: WebSocket integration for live data processing
  Advanced Analytics: Time-series forecasting and predictive modeling
@@ -171,17 +172,17 @@ Cold Starts: Free-tier deployments may experience initial latency
  API Marketplace: Third-party integrations and webhook support
  Enterprise SSO: Advanced authentication providers integration
 
-🤝 Contributing
+Contributing
 Fork the repository
 Create feature branch: git checkout -b feature/amazing-feature
 Commit changes: git commit -m 'Add amazing feature'
 Push branch: git push origin feature/amazing-feature
 Open Pull Request with detailed description
 
-📄 License
+License
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-📞 Contact & Support
+Contact & Support
 Developer: Bharath N
 Email: bharath.n208@gmail.com
 GitHub: https://github.com/Bharath1n
